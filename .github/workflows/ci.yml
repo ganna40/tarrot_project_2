@@ -1,4 +1,4 @@
-name: Static validator CI
+name: Tarot Engine CI
 
 on:
   push:
@@ -11,18 +11,31 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Run backend tests
+        run: python -m pytest -q
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
 
-      - name: Run unit tests
+      - name: Run static UI tests
         run: npm test
 
       - name: Validate static site
