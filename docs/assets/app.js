@@ -19,7 +19,13 @@ const LOCAL_CODEX_SETTINGS = Object.freeze({
   endpoint: '/api/v1/readings',
   healthPath: '/health',
   authMode: 'NONE',
-  timeoutMs: 150000,
+  timeoutMs: 210000,
+});
+
+const STYLE_LABELS = Object.freeze({
+  PRECISE: '정확하게',
+  BALANCED: '균형',
+  RICH: '풍부하게',
 });
 
 const state = {
@@ -35,6 +41,9 @@ const elements = {
   additionalContext: $('additional-context'),
   readingContext: $('reading-context'),
   responseLength: $('response-length'),
+  llmModel: $('llm-model'),
+  llmReasoningEffort: $('llm-reasoning-effort'),
+  interpretationStyle: $('interpretation-style'),
   useLlm: $('use-llm'),
   includeTrace: $('include-trace'),
   submit: $('submit-reading'),
@@ -186,7 +195,7 @@ function resetChat() {
   appendMessage({
     role: 'system',
     text: state.settings.mode === 'LOCAL_CODEX'
-      ? 'Local Codex 모드입니다. 질문과 카드 3장을 정한 뒤 해석 요청을 누르면 로컬 규칙 엔진과 로그인된 ChatGPT/Codex 구독을 사용합니다.'
+      ? 'Local Codex 모드입니다. 모델·추론 강도·해설 스타일을 조정한 뒤 질문과 카드 3장으로 실제 ChatGPT/Codex 구독 해석을 검증할 수 있습니다.'
       : '세 장의 카드와 질문을 정한 뒤 해석을 요청하세요. 기본값은 투자 질문 골든 테스트 사례입니다.',
   });
 }
@@ -203,10 +212,27 @@ function setConnectionStatus(status, label) {
   elements.connectionStatus.textContent = label;
 }
 
+function setLlmControlsEnabled() {
+  const disabled = !elements.useLlm.checked;
+  elements.llmModel.disabled = disabled;
+  elements.llmReasoningEffort.disabled = disabled;
+  elements.interpretationStyle.disabled = disabled;
+}
+
+function applyLocalCodexAiDefaults() {
+  elements.useLlm.checked = true;
+  elements.llmModel.value = 'gpt-5.6-sol';
+  elements.llmReasoningEffort.value = 'XHIGH';
+  elements.interpretationStyle.value = 'RICH';
+  elements.responseLength.value = 'DETAILED';
+  elements.includeTrace.checked = true;
+  setLlmControlsEnabled();
+}
+
 function updateModeUi() {
   if (state.settings.mode === 'LOCAL_CODEX') {
     setConnectionStatus('online', 'Local Codex');
-    elements.modeHint.textContent = '로컬 규칙 엔진 → Codex CLI → ChatGPT 구독으로 문장화합니다.';
+    elements.modeHint.textContent = '로컬 규칙 엔진 → 선택한 Codex 모델 → ChatGPT 구독으로 문장화합니다.';
     return;
   }
   if (state.settings.mode === 'REMOTE') {
@@ -291,6 +317,13 @@ function renderResponse(response) {
     ...(scoreLabel ? [{ label: scoreLabel }] : []),
     { label: normalized.llmUsed ? 'LLM 사용' : 'LLM 미사용' },
   ];
+  if (normalized.llmUsed && normalized.llmModel) tags.push({ label: normalized.llmModel });
+  if (normalized.llmUsed && normalized.llmReasoningEffort !== 'DEFAULT') {
+    tags.push({ label: `Reasoning ${normalized.llmReasoningEffort}` });
+  }
+  if (normalized.llmUsed && normalized.interpretationStyle) {
+    tags.push({ label: STYLE_LABELS[normalized.interpretationStyle] ?? normalized.interpretationStyle });
+  }
   appendMessage({
     role: 'assistant',
     text: normalized.message || '응답 본문이 비어 있습니다. Response JSON을 확인하세요.',
@@ -316,6 +349,9 @@ async function handleReadingSubmit(event) {
       responseLength: elements.responseLength.value,
       includeTrace: elements.includeTrace.checked,
       useLlm: elements.useLlm.checked,
+      llmModel: elements.llmModel.value,
+      llmReasoningEffort: elements.llmReasoningEffort.value,
+      interpretationStyle: elements.interpretationStyle.value,
     });
   } catch (error) {
     const message = error instanceof ReadingValidationError ? error.message : '입력값을 확인해 주세요.';
@@ -406,12 +442,20 @@ function initialize() {
   $('card-1').value = 'TEN_OF_SWORDS';
   $('card-2').value = 'EIGHT_OF_WANDS';
   $('card-3').value = 'HIEROPHANT';
+
+  if (state.settings.mode === 'LOCAL_CODEX') {
+    applyLocalCodexAiDefaults();
+  } else {
+    setLlmControlsEnabled();
+  }
+
   resetChat();
   updateModeUi();
 
   elements.form.addEventListener('submit', handleReadingSubmit);
   elements.randomize.addEventListener('click', randomizeCards);
   elements.clearChat.addEventListener('click', resetChat);
+  elements.useLlm.addEventListener('change', setLlmControlsEnabled);
 
   elements.openSettings.addEventListener('click', () => {
     syncDialogFromState();
@@ -428,12 +472,13 @@ function initialize() {
     state.settings = readDialogSettings();
     state.token = state.settings.mode === 'LOCAL_CODEX' ? '' : elements.token.value;
     persistSettings({ ...state.settings, token: state.token });
+    if (state.settings.mode === 'LOCAL_CODEX') applyLocalCodexAiDefaults();
     updateModeUi();
     elements.dialog.close();
     appendMessage({
       role: 'system',
       text: state.settings.mode === 'LOCAL_CODEX'
-        ? 'Local Codex 모드로 전환했습니다. 로컬 백엔드와 로그인된 Codex CLI를 사용합니다.'
+        ? 'Local Codex 모드로 전환했습니다. GPT-5.6 Sol / XHigh / 풍부하게 / 상세하게를 기본값으로 적용했습니다.'
         : state.settings.mode === 'REMOTE'
           ? `원격 API 모드로 전환했습니다: ${state.settings.baseUrl}${state.settings.endpoint}`
           : '로컬 데모 모드로 전환했습니다.',
