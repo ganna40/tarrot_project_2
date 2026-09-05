@@ -13,6 +13,14 @@ const DEFAULT_SETTINGS = Object.freeze({
   authMode: 'NONE',
   timeoutMs: 30000,
 });
+const LOCAL_CODEX_SETTINGS = Object.freeze({
+  mode: 'LOCAL_CODEX',
+  baseUrl: 'http://127.0.0.1:8000',
+  endpoint: '/api/v1/readings',
+  healthPath: '/health',
+  authMode: 'NONE',
+  timeoutMs: 150000,
+});
 
 const state = {
   settings: loadSettings(),
@@ -52,10 +60,22 @@ const elements = {
   testResult: $('connection-test-result'),
 };
 
+function requestedLocalCodexMode() {
+  const params = new URLSearchParams(globalThis.location?.search ?? '');
+  return (params.get('mode') ?? '').toLowerCase() === 'local-codex';
+}
+
+function normalizeSavedSettings(saved) {
+  if (saved.mode === 'LOCAL_CODEX') return { ...LOCAL_CODEX_SETTINGS };
+  if (saved.mode === 'REMOTE') return { ...DEFAULT_SETTINGS, ...saved, mode: 'REMOTE' };
+  return { ...DEFAULT_SETTINGS, ...saved, mode: 'DEMO' };
+}
+
 function loadSettings() {
+  if (requestedLocalCodexMode()) return { ...LOCAL_CODEX_SETTINGS };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}');
-    return { ...DEFAULT_SETTINGS, ...saved, mode: saved.mode === 'REMOTE' ? 'REMOTE' : 'DEMO' };
+    return normalizeSavedSettings(saved);
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -165,7 +185,9 @@ function resetChat() {
   elements.chatLog.replaceChildren();
   appendMessage({
     role: 'system',
-    text: '세 장의 카드와 질문을 정한 뒤 해석을 요청하세요. 기본값은 투자 질문 골든 테스트 사례입니다.',
+    text: state.settings.mode === 'LOCAL_CODEX'
+      ? 'Local Codex 모드입니다. 질문과 카드 3장을 정한 뒤 해석 요청을 누르면 로컬 규칙 엔진과 로그인된 ChatGPT/Codex 구독을 사용합니다.'
+      : '세 장의 카드와 질문을 정한 뒤 해석을 요청하세요. 기본값은 투자 질문 골든 테스트 사례입니다.',
   });
 }
 
@@ -182,13 +204,27 @@ function setConnectionStatus(status, label) {
 }
 
 function updateModeUi() {
+  if (state.settings.mode === 'LOCAL_CODEX') {
+    setConnectionStatus('online', 'Local Codex');
+    elements.modeHint.textContent = '로컬 규칙 엔진 → Codex CLI → ChatGPT 구독으로 문장화합니다.';
+    return;
+  }
   if (state.settings.mode === 'REMOTE') {
     setConnectionStatus('online', '원격 API');
     elements.modeHint.textContent = `${state.settings.baseUrl}${state.settings.endpoint} 로 요청합니다.`;
-  } else {
-    setConnectionStatus('demo', '로컬 데모');
-    elements.modeHint.textContent = '현재는 실제 API를 호출하지 않는 로컬 데모 모드입니다.';
+    return;
   }
+  setConnectionStatus('demo', '로컬 데모');
+  elements.modeHint.textContent = '현재는 실제 API를 호출하지 않는 로컬 데모 모드입니다.';
+}
+
+function applyDialogModePreset() {
+  if (elements.connectionMode.value !== 'LOCAL_CODEX') return;
+  elements.baseUrl.value = LOCAL_CODEX_SETTINGS.baseUrl;
+  elements.endpoint.value = LOCAL_CODEX_SETTINGS.endpoint;
+  elements.healthPath.value = LOCAL_CODEX_SETTINGS.healthPath;
+  elements.authMode.value = LOCAL_CODEX_SETTINGS.authMode;
+  elements.token.value = '';
 }
 
 function syncDialogFromState() {
@@ -200,9 +236,13 @@ function syncDialogFromState() {
   elements.token.value = state.token;
   elements.testResult.textContent = '';
   elements.testResult.className = 'connection-result';
+  applyDialogModePreset();
 }
 
 function readDialogSettings() {
+  if (elements.connectionMode.value === 'LOCAL_CODEX') {
+    return { ...LOCAL_CODEX_SETTINGS };
+  }
   return {
     mode: elements.connectionMode.value === 'REMOTE' ? 'REMOTE' : 'DEMO',
     baseUrl: elements.baseUrl.value.trim(),
@@ -231,7 +271,9 @@ async function handleHealthCheck() {
       token: elements.token.value,
       timeoutMs: 10000,
     });
-    elements.testResult.textContent = `연결 성공 · HTTP ${result.status}`;
+    elements.testResult.textContent = candidate.mode === 'LOCAL_CODEX'
+      ? `Local Codex 백엔드 연결 성공 · HTTP ${result.status}`
+      : `연결 성공 · HTTP ${result.status}`;
     elements.testResult.classList.add('success');
   } catch (error) {
     elements.testResult.textContent = error instanceof Error ? error.message : String(error);
@@ -293,18 +335,19 @@ async function handleReadingSubmit(event) {
   setBusy(true);
 
   try {
-    const response = state.settings.mode === 'REMOTE'
-      ? (await requestConsultation({
+    const response = state.settings.mode === 'DEMO'
+      ? await runDemoConsultation(payload)
+      : (await requestConsultation({
           baseUrl: state.settings.baseUrl,
           endpoint: state.settings.endpoint,
           payload,
           authMode: state.settings.authMode,
           token: state.token,
           timeoutMs: state.settings.timeoutMs,
-        })).data
-      : await runDemoConsultation(payload);
+        })).data;
     pending.remove();
     renderResponse(response);
+    if (state.settings.mode === 'LOCAL_CODEX') setConnectionStatus('online', 'Local Codex 연결됨');
     if (state.settings.mode === 'REMOTE') setConnectionStatus('online', '원격 API 연결됨');
   } catch (error) {
     pending.remove();
@@ -378,19 +421,22 @@ function initialize() {
   elements.dialog.addEventListener('click', (event) => {
     if (event.target === elements.dialog) elements.dialog.close();
   });
+  elements.connectionMode.addEventListener('change', applyDialogModePreset);
   elements.testConnection.addEventListener('click', handleHealthCheck);
   elements.settingsForm.addEventListener('submit', (event) => {
     event.preventDefault();
     state.settings = readDialogSettings();
-    state.token = elements.token.value;
+    state.token = state.settings.mode === 'LOCAL_CODEX' ? '' : elements.token.value;
     persistSettings({ ...state.settings, token: state.token });
     updateModeUi();
     elements.dialog.close();
     appendMessage({
       role: 'system',
-      text: state.settings.mode === 'REMOTE'
-        ? `원격 API 모드로 전환했습니다: ${state.settings.baseUrl}${state.settings.endpoint}`
-        : '로컬 데모 모드로 전환했습니다.',
+      text: state.settings.mode === 'LOCAL_CODEX'
+        ? 'Local Codex 모드로 전환했습니다. 로컬 백엔드와 로그인된 Codex CLI를 사용합니다.'
+        : state.settings.mode === 'REMOTE'
+          ? `원격 API 모드로 전환했습니다: ${state.settings.baseUrl}${state.settings.endpoint}`
+          : '로컬 데모 모드로 전환했습니다.',
     });
   });
 
