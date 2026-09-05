@@ -7,7 +7,10 @@ import pytest
 
 from app.config import Settings
 from app.schemas import (
+    InterpretationOptions,
     InterpretationPlan,
+    InterpretationStyle,
+    LLMReasoningEffort,
     Orientation,
     ReadingContext,
     ResolvedCard,
@@ -123,7 +126,7 @@ def test_codex_subscription_service_runs_safe_ephemeral_exec_and_reads_final_mes
     command = captured["command"]
     assert command[0] == "C:/tools/codex.exe"
     assert command[1:3] == ["--ask-for-approval", "never"]
-    assert command[3] == "exec"
+    assert "exec" in command
     assert "--ephemeral" in command
     assert command[command.index("--sandbox") + 1] == "read-only"
     assert command[command.index("--model") + 1] == "test-model"
@@ -133,6 +136,45 @@ def test_codex_subscription_service_runs_safe_ephemeral_exec_and_reads_final_mes
     assert kwargs["input"].find("카드 뜻을 따로 나열하지") >= 0
     assert kwargs["encoding"] == "utf-8"
     assert kwargs["timeout"] == 12
+
+
+def test_codex_per_reading_overrides_model_reasoning_and_rich_verbosity():
+    from app.codex_service import CodexCLIInterpretationService
+
+    captured: dict[str, object] = {}
+
+    def fake_runner(command, **kwargs):
+        captured["command"] = command
+        captured["kwargs"] = kwargs
+        output_path = Path(command[command.index("--output-last-message") + 1])
+        output_path.write_text("풍부한 테스트 해석입니다.", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    service = CodexCLIInterpretationService(
+        settings=Settings(llm_provider="codex_subscription", codex_executable="codex"),
+        runner=fake_runner,
+        executable_resolver=lambda _: "C:/tools/codex.exe",
+    )
+    options = InterpretationOptions(
+        model="gpt-5.6-sol",
+        reasoning_effort=LLMReasoningEffort.XHIGH,
+        style=InterpretationStyle.RICH,
+    )
+
+    result = service.generate(sample_plan(), ResponseLength.DETAILED, options)
+
+    assert result == "풍부한 테스트 해석입니다."
+    command = captured["command"]
+    assert command[command.index("--model") + 1] == "gpt-5.6-sol"
+    config_values = [command[index + 1] for index, value in enumerate(command[:-1]) if value in {"-c", "--config"}]
+    assert 'model_reasoning_effort="xhigh"' in config_values
+    assert 'model_verbosity="high"' in config_values
+    assert command.index("-c") < command.index("exec")
+    prompt = captured["kwargs"]["input"]
+    assert "상징" in prompt
+    assert "심리" in prompt
+    assert "DATA 밖의 사건" in prompt
+    assert "12~18문장" in prompt
 
 
 def test_codex_subscription_service_reports_missing_cli():
