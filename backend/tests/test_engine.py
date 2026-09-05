@@ -148,3 +148,21 @@ def test_validate_card_inputs_rejects_duplicate_cards():
 def test_validate_card_inputs_requires_exactly_three_cards():
     with pytest.raises(ValueError, match="정확히 3장"):
         validate_card_inputs([CardInput(code="HIEROPHANT", orientation=Orientation.UPRIGHT)])
+
+@pytest.mark.parametrize(
+    ("left", "right", "expected"),
+    [
+        ("FIRE", "AIR", 0.25),
+        ("FIRE", "EARTH", 0.25),
+        ("AIR", "WATER", 0.25),
+        ("FIRE", "WATER", -0.25),
+        ("AIR", "EARTH", -0.25),
+        ("WATER", "EARTH", 0.0),
+        ("WATER", "WATER", 0.15),
+    ],
+)
+def test_elemental_dignity_uses_book_t_friendly_hostile_and_neutral_pairs(left, right, expected):
+    from app.repository import TarotRepository
+
+    cards = [card("LEFT", "TEST", 0, element=left), card("RIGHT", "TEST", 0, element=right)]
+    assert TarotRepository.elemental_modifier(cards) == expected

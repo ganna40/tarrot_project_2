@@ -82,6 +82,8 @@ class ResolvedCard(BaseModel):
     tags: list[str]
     element: str | None = None
     source_code: str
+    source_url: str | None = None
+    source_locator: str | None = None
     page_start: int | None = None
     page_end: int | None = None
 

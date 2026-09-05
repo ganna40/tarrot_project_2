@@ -30,6 +30,8 @@ class Source(Base):
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source_type: Mapped[str] = mapped_column(String(32))
     license_status: Mapped[str] = mapped_column(String(32))
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rights_basis: Mapped[str | None] = mapped_column(Text, nullable=True)
     priority: Mapped[int] = mapped_column(Integer, default=100)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -75,10 +77,13 @@ class CardMeaning(Base):
     stability_level: Mapped[float] = mapped_column(Float)
     ending_level: Mapped[float] = mapped_column(Float)
     origin: Mapped[str] = mapped_column(String(32), default="SOURCE")
+    source_locator: Mapped[str | None] = mapped_column(String(255), nullable=True)
     page_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     page_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     priority: Mapped[int] = mapped_column(Integer, default=100)
     review_status: Mapped[str] = mapped_column(String(16), default="CANDIDATE", index=True)
+    review_method: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -118,10 +123,13 @@ class CardCorrespondence(Base):
     source_id: Mapped[int] = mapped_column(ForeignKey("sources.id", ondelete="RESTRICT"), index=True)
     correspondence_type: Mapped[str] = mapped_column(String(32), index=True)
     value: Mapped[str] = mapped_column(String(100))
+    source_locator: Mapped[str | None] = mapped_column(String(255), nullable=True)
     page_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     page_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     priority: Mapped[int] = mapped_column(Integer, default=100)
     review_status: Mapped[str] = mapped_column(String(16), default="CANDIDATE")
+    review_method: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -141,10 +149,13 @@ class RelationRule(Base):
     score_delta: Mapped[float] = mapped_column(Float, default=0.0)
     priority: Mapped[int] = mapped_column(Integer, default=100)
     source_id: Mapped[int | None] = mapped_column(ForeignKey("sources.id"), nullable=True)
+    source_locator: Mapped[str | None] = mapped_column(String(255), nullable=True)
     page_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     page_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     origin: Mapped[str] = mapped_column(String(16), default="DESIGNED")
     review_status: Mapped[str] = mapped_column(String(16), default="CANDIDATE")
+    review_method: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 

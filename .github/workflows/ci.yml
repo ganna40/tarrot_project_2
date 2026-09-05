@@ -1,15 +1,17 @@
-name: Bootstrap curated tarot dataset
+name: Tarot Engine CI
 
 on:
   push:
     branches: [new]
+  pull_request:
+    branches: [new]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply-and-verify:
+  verify:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -26,15 +28,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - name: Checkout staged update
+      - name: Checkout repository
         uses: actions/checkout@v6
-
-      - name: Reassemble and extract verified update
-        run: |
-          cat .bootstrap/update.part.* > /tmp/tarot-curated-update.tar.xz
-          echo "9d639892d26405465f17ea6e5d68feb639c41956eecdfadc9ba50f02335b6631  /tmp/tarot-curated-update.tar.xz" | sha256sum --check
-          tar -xJf /tmp/tarot-curated-update.tar.xz -C .
-          rm -rf .bootstrap
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -91,11 +86,3 @@ jobs:
 
       - name: Validate static site
         run: npm run check:static
-
-      - name: Commit verified update
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat: add public-domain tarot knowledge"
-          git push origin HEAD:new

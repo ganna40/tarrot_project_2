@@ -137,6 +137,8 @@ class TarotRepository:
                     tags=tags,
                     element=element,
                     source_code=source.code,
+                    source_url=source.source_url,
+                    source_locator=meaning.source_locator,
                     page_start=meaning.page_start,
                     page_end=meaning.page_end,
                 )
@@ -220,7 +222,11 @@ class TarotRepository:
 
     @staticmethod
     def elemental_modifier(cards: list[ResolvedCard]) -> float:
-        supportive = {frozenset(("FIRE", "AIR")), frozenset(("WATER", "EARTH"))}
+        supportive = {
+            frozenset(("FIRE", "AIR")),
+            frozenset(("FIRE", "EARTH")),
+            frozenset(("AIR", "WATER")),
+        }
         tense = {frozenset(("FIRE", "WATER")), frozenset(("AIR", "EARTH"))}
         modifier = 0.0
         for left, right in zip(cards, cards[1:]):

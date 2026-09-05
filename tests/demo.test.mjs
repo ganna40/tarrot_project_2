@@ -19,8 +19,8 @@ const goldenPayload = {
 
 test('returns the approved golden flow in local demo mode', async () => {
   const response = await runDemoConsultation(goldenPayload);
-  assert.equal(response.verdict, 'CAUTIOUS');
-  assert.match(response.flow_summary, /종료.*빠른.*공식/);
+  assert.equal(response.verdict, 'POSITIVE');
+  assert.match(response.flow_summary, /국면.*빠르게.*계약/);
   assert.equal(response.llm_used, false);
   assert.equal(response.trace.mode, 'LOCAL_DEMO');
 });

@@ -2,11 +2,52 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import get_settings
 from app.models import Base
+
+
+_ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
+    "sources": {
+        "source_url": "TEXT",
+        "rights_basis": "TEXT",
+    },
+    "card_meanings": {
+        "source_locator": "VARCHAR(255)",
+        "review_method": "VARCHAR(64)",
+        "review_notes": "TEXT",
+    },
+    "card_correspondences": {
+        "source_locator": "VARCHAR(255)",
+        "review_method": "VARCHAR(64)",
+        "review_notes": "TEXT",
+    },
+    "relation_rules": {
+        "source_locator": "VARCHAR(255)",
+        "review_method": "VARCHAR(64)",
+        "review_notes": "TEXT",
+    },
+}
+
+
+def apply_additive_migrations(engine: Engine) -> None:
+    """Add traceability columns when upgrading a database from the demo schema."""
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    with engine.begin() as connection:
+        for table_name, columns in _ADDITIVE_COLUMNS.items():
+            if table_name not in existing_tables:
+                continue
+            existing_columns = {column["name"] for column in inspect(connection).get_columns(table_name)}
+            for column_name, sql_type in columns.items():
+                if column_name in existing_columns:
+                    continue
+                connection.execute(
+                    text(f'ALTER TABLE "{table_name}" ADD COLUMN "{column_name}" {sql_type}')
+                )
+                existing_columns.add(column_name)
 
 
 _engine: Engine | None = None
@@ -29,6 +70,7 @@ def init_database() -> None:
         _engine = build_engine()
         _session_factory = build_session_factory(_engine)
     Base.metadata.create_all(_engine)
+    apply_additive_migrations(_engine)
 
 
 def close_database() -> None:

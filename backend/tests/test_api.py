@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import create_app
 from app.models import Base
-from app.seed import seed_demo_knowledge
+from app.seed import seed_public_domain_knowledge
 
 
 class FakeOpenAIService:
@@ -29,7 +29,7 @@ def build_client(openai_service=None, api_access_key=None) -> TestClient:
     Base.metadata.create_all(engine)
     factory = sessionmaker(engine, expire_on_commit=False)
     with factory() as session:
-        seed_demo_knowledge(session)
+        seed_public_domain_knowledge(session)
         session.commit()
     app = create_app(
         session_factory=factory,
@@ -73,11 +73,12 @@ def test_known_reading_returns_deterministic_flow_and_trace():
     assert response.status_code == 200
     body = response.json()
     assert body["reading_context"] == "BUSINESS"
-    assert body["verdict"] == "CAUTIOUS"
-    assert "공식적인 구조" in body["flow_summary"]
+    assert body["verdict"] == "POSITIVE"
+    assert "계약과 절차" in body["flow_summary"]
     assert body["llm_used"] is False
     assert [item["relation_type"] for item in body["trace"]["transitions"]] == ["ACCELERATE", "FORMALIZE"]
-    assert body["trace"]["cards"][0]["source_code"] == "INTERNAL_DEMO"
+    assert body["trace"]["cards"][0]["source_code"] == "WAITE_PKD_1910"
+    assert body["trace"]["cards"][0]["source_locator"] == "Part III §2 — Swords, Ten"
 
 
 def test_openai_text_does_not_change_engine_fields():
@@ -111,14 +112,18 @@ def test_duplicate_card_request_returns_422():
     assert response.json()["error"] == "INVALID_CARDS"
 
 
-def test_unsupported_card_returns_503_knowledge_not_ready():
+def test_formerly_unsupported_card_is_available():
     payload = known_request()
-    payload["cards"][0]["code"] = "FOOL"
+    payload["cards"] = [
+        {"code": "FOOL", "orientation": "UPRIGHT"},
+        {"code": "TWO_OF_CUPS", "orientation": "UPRIGHT"},
+        {"code": "WORLD", "orientation": "UPRIGHT"},
+    ]
     with build_client() as client:
         response = client.post("/api/v1/readings", json=payload)
 
-    assert response.status_code == 503
-    assert response.json()["error"] == "KNOWLEDGE_NOT_READY"
+    assert response.status_code == 200
+    assert [card["code"] for card in response.json()["cards"]] == ["FOOL", "TWO_OF_CUPS", "WORLD"]
 
 
 def test_server_can_draw_three_supported_cards():
@@ -148,7 +153,7 @@ def test_static_validator_compatibility_endpoint():
         response = client.post("/api/consultation", json=known_request())
 
     assert response.status_code == 200
-    assert response.json()["verdict"] == "CAUTIOUS"
+    assert response.json()["verdict"] == "POSITIVE"
 
 
 def test_x_api_key_header_is_allowed_by_cors():

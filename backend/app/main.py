@@ -18,7 +18,7 @@ from app.fallback import build_advice, build_fallback_interpretation
 from app.openai_service import OpenAIInterpretationService
 from app.repository import KnowledgeNotReadyError, TarotRepository
 from app.schemas import ReadingRequest, ReadingResponse, ResponseLength
-from app.seed import seed_demo_knowledge
+from app.seed import seed_public_domain_knowledge
 
 logger = logging.getLogger(__name__)
 
@@ -42,16 +42,16 @@ def create_app(
         if session_factory is None:
             init_database()
 
-        if run_startup_seed and settings.auto_seed_demo:
+        if run_startup_seed and settings.auto_seed_enabled:
             if session_factory is not None:
                 with session_factory() as session:
-                    seed_demo_knowledge(session)
+                    seed_public_domain_knowledge(session)
                     session.commit()
             else:
                 session_generator = get_session()
                 session = next(session_generator)
                 try:
-                    seed_demo_knowledge(session)
+                    seed_public_domain_knowledge(session)
                     session.commit()
                 finally:
                     session_generator.close()
@@ -159,6 +159,8 @@ def create_app(
                         "tags": card.tags,
                         "element": card.element,
                         "source_code": card.source_code,
+                        "source_url": card.source_url,
+                        "source_locator": card.source_locator,
                         "page_start": card.page_start,
                         "page_end": card.page_end,
                     }

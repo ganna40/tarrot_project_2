@@ -1,12 +1,12 @@
 import pytest
 from sqlalchemy import JSON, create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.models import Base
-from app.repository import KnowledgeNotReadyError, TarotRepository
+from app.repository import TarotRepository
 from app.schemas import CardInput, Orientation, ReadingContext
-from app.seed import seed_demo_knowledge
+from app.seed import all_card_rows, seed_public_domain_knowledge
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def session_factory():
     Base.metadata.create_all(engine)
     factory = sessionmaker(engine, expire_on_commit=False)
     with factory() as session:
-        seed_demo_knowledge(session)
+        seed_public_domain_knowledge(session)
         session.commit()
     yield factory
     engine.dispose()
@@ -48,7 +48,7 @@ def test_core_knowledge_tables_do_not_use_json_columns():
         assert all(not isinstance(column.type, JSON) for column in table.columns)
 
 
-def test_exact_business_meaning_is_preferred(session_factory):
+def test_context_falls_back_to_general_public_domain_meaning(session_factory):
     with session_factory() as session:
         repository = TarotRepository(session)
         cards = repository.resolve_cards(
@@ -60,37 +60,32 @@ def test_exact_business_meaning_is_preferred(session_factory):
             ReadingContext.BUSINESS,
         )
 
-    assert cards[1].source_code == "INTERNAL_DEMO"
-    assert "사업" in cards[1].meaning
+    assert [card.source_code for card in cards] == ["WAITE_PKD_1910"] * 3
+    assert cards[1].primary_tag == "MOVEMENT"
     assert cards[0].position_label == "시작"
     assert cards[2].position_label == "결과"
     assert [card.position_weight for card in cards] == [0.9, 1.0, 1.2]
+    assert cards[0].source_locator == "Part III §2 — Swords, Ten"
+    assert cards[0].source_url and cards[0].source_url.startswith("https://")
 
 
-def test_general_meaning_is_used_when_context_specific_row_is_missing(session_factory):
+def test_every_card_resolves_upright_and_reversed_general_meanings(session_factory):
     with session_factory() as session:
         repository = TarotRepository(session)
-        cards = repository.resolve_cards(
-            [
-                CardInput(code="SIX_OF_WANDS"),
-                CardInput(code="EIGHT_OF_SWORDS"),
-                CardInput(code="HANGED_MAN"),
-            ],
-            ReadingContext.BUSINESS,
-        )
-
-    assert cards[2].primary_tag == "PAUSE"
-    assert cards[2].meaning == "즉시 결론을 내리기보다 관점을 바꾸고 멈춰 살피는 단계"
-
-
-def test_missing_approved_meaning_raises_clear_error(session_factory):
-    with session_factory() as session:
-        repository = TarotRepository(session)
-        with pytest.raises(KnowledgeNotReadyError, match="FOOL"):
-            repository.resolve_cards(
-                [CardInput(code="FOOL"), CardInput(code="STAR"), CardInput(code="TOWER")],
-                ReadingContext.GENERAL,
-            )
+        for card in all_card_rows():
+            for orientation in (Orientation.UPRIGHT, Orientation.REVERSED):
+                resolved = repository.resolve_cards(
+                    [
+                        CardInput(code=card.code, orientation=orientation),
+                        CardInput(code="MAGICIAN" if card.code != "MAGICIAN" else "HIGH_PRIESTESS"),
+                        CardInput(code="WORLD" if card.code != "WORLD" else "SUN"),
+                    ],
+                    ReadingContext.GENERAL,
+                )[0]
+                assert resolved.code == card.code
+                assert resolved.orientation == orientation
+                assert resolved.meaning
+                assert resolved.primary_tag
 
 
 def test_repository_builds_known_pairwise_transitions(session_factory):
@@ -106,10 +101,10 @@ def test_repository_builds_known_pairwise_transitions(session_factory):
     assert [transition.to_tag for transition in transitions] == ["MOVEMENT", "FORMALIZATION"]
 
 
-def test_random_draw_uses_only_cards_with_approved_demo_meanings(session_factory):
+def test_random_draw_can_use_the_complete_approved_deck(session_factory):
     with session_factory() as session:
         repository = TarotRepository(session)
-        drawn = repository.draw_supported_cards(3)
+        drawn = repository.draw_supported_cards(78)
 
-    assert len(drawn) == 3
-    assert len({card.code for card in drawn}) == 3
+    assert len(drawn) == 78
+    assert len({card.code for card in drawn}) == 78

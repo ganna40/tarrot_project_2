@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -277,3 +277,207 @@ def seed_demo_knowledge(session: Session) -> None:
                 is_active=True,
             )
         )
+
+
+
+def seed_public_domain_knowledge(session: Session) -> None:
+    """Load the reviewed 78-card public-domain dataset into normalized tables.
+
+    The CSV package is validated before any database mutation. The operation is
+    idempotent and can safely upgrade a database that already contains the
+    legacy INTERNAL_DEMO seed; public-domain rows have a higher source priority.
+    """
+    from app.curated_data import load_curated_dataset, validate_curated_dataset
+
+    dataset = load_curated_dataset()
+    report = validate_curated_dataset(dataset)
+    report.raise_for_errors()
+
+    legacy_source = session.scalar(select(Source).where(Source.code == "INTERNAL_DEMO"))
+    if legacy_source is not None:
+        legacy_meaning_ids = list(
+            session.scalars(select(CardMeaning.id).where(CardMeaning.source_id == legacy_source.id)).all()
+        )
+        if legacy_meaning_ids:
+            session.execute(delete(CardMeaningTag).where(CardMeaningTag.card_meaning_id.in_(legacy_meaning_ids)))
+            session.execute(delete(CardMeaning).where(CardMeaning.id.in_(legacy_meaning_ids)))
+        session.execute(delete(CardCorrespondence).where(CardCorrespondence.source_id == legacy_source.id))
+        session.execute(delete(RelationRule).where(RelationRule.source_id == legacy_source.id))
+        session.delete(legacy_source)
+        session.flush()
+
+    card_by_code: dict[str, TarotCard] = {}
+    for template in all_card_rows():
+        card = session.scalar(select(TarotCard).where(TarotCard.code == template.code))
+        if card is None:
+            card = template
+            session.add(card)
+        else:
+            card.name_ko = template.name_ko
+            card.name_en = template.name_en
+            card.arcana = template.arcana
+            card.suit = template.suit
+            card.rank = template.rank
+            card.number = template.number
+            card.sort_order = template.sort_order
+            card.is_active = True
+        card_by_code[card.code] = card
+
+    source_by_code: dict[str, Source] = {}
+    for row in dataset.sources:
+        source = session.scalar(select(Source).where(Source.code == row.code))
+        if source is None:
+            source = Source(code=row.code)
+            session.add(source)
+        source.title = row.title
+        source.author = row.author or None
+        source.publication_year = row.publication_year
+        source.source_type = row.source_type
+        source.license_status = row.license_status
+        source.source_url = row.source_url
+        source.rights_basis = row.rights_basis
+        source.priority = row.priority
+        source.is_active = row.is_active
+        source_by_code[row.code] = source
+
+    tag_by_code: dict[str, InterpretationTag] = {}
+    for row in dataset.tags:
+        tag = session.scalar(select(InterpretationTag).where(InterpretationTag.code == row.code))
+        if tag is None:
+            tag = InterpretationTag(code=row.code, name_ko=row.name_ko, description=row.description)
+            session.add(tag)
+        else:
+            tag.name_ko = row.name_ko
+            tag.description = row.description
+        tag_by_code[row.code] = tag
+
+    spread_defaults = (
+        (1, "시작", "START", 0.9),
+        (2, "전개", "DEVELOPMENT", 1.0),
+        (3, "결과", "OUTCOME", 1.2),
+    )
+    for position_order, label_ko, role, weight in spread_defaults:
+        position = session.scalar(
+            select(SpreadPosition).where(
+                SpreadPosition.spread_code == "THREE_FLOW",
+                SpreadPosition.position_order == position_order,
+            )
+        )
+        if position is None:
+            position = SpreadPosition(
+                spread_code="THREE_FLOW",
+                position_order=position_order,
+                label_ko=label_ko,
+                role=role,
+                weight=weight,
+            )
+            session.add(position)
+        else:
+            position.label_ko = label_ko
+            position.role = role
+            position.weight = weight
+
+    session.flush()
+
+    public_source_ids = [source_by_code[row.code].id for row in dataset.sources]
+    previous_meaning_ids = list(
+        session.scalars(select(CardMeaning.id).where(CardMeaning.source_id.in_(public_source_ids))).all()
+    )
+    if previous_meaning_ids:
+        session.execute(delete(CardMeaningTag).where(CardMeaningTag.card_meaning_id.in_(previous_meaning_ids)))
+        session.execute(delete(CardMeaning).where(CardMeaning.id.in_(previous_meaning_ids)))
+    session.execute(delete(CardCorrespondence).where(CardCorrespondence.source_id.in_(public_source_ids)))
+    session.flush()
+
+    meaning_by_key: dict[tuple[str, str, str], CardMeaning] = {}
+    for row in dataset.meanings:
+        meaning = CardMeaning(
+            card_id=card_by_code[row.card_code].id,
+            source_id=source_by_code[row.source_code].id,
+            orientation=row.orientation,
+            context=row.context,
+            meaning_text=row.meaning_text,
+            advice_text=row.advice_text,
+            warning_text=row.warning_text,
+            polarity=row.polarity,
+            action_level=row.action_level,
+            speed_level=row.speed_level,
+            stability_level=row.stability_level,
+            ending_level=row.ending_level,
+            origin=row.origin,
+            source_locator=row.source_locator,
+            page_start=row.page_start,
+            page_end=row.page_end,
+            priority=row.priority,
+            review_status=row.review_status,
+            review_method=row.review_method,
+            review_notes=row.review_notes,
+            is_active=row.is_active,
+        )
+        session.add(meaning)
+        meaning_by_key[(row.card_code, row.orientation, row.context)] = meaning
+    session.flush()
+
+    for row in dataset.meaning_tags:
+        meaning = meaning_by_key[(row.card_code, row.orientation, row.context)]
+        session.add(
+            CardMeaningTag(
+                card_meaning_id=meaning.id,
+                tag_id=tag_by_code[row.tag_code].id,
+                weight=row.weight,
+                is_primary=row.is_primary,
+            )
+        )
+
+    for row in dataset.correspondences:
+        session.add(
+            CardCorrespondence(
+                card_id=card_by_code[row.card_code].id,
+                source_id=source_by_code[row.source_code].id,
+                correspondence_type=row.correspondence_type,
+                value=row.value,
+                source_locator=row.source_locator,
+                page_start=row.page_start,
+                page_end=row.page_end,
+                priority=row.priority,
+                review_status=row.review_status,
+                review_method=row.review_method,
+                review_notes=row.review_notes,
+                is_active=row.is_active,
+            )
+        )
+
+    for row in dataset.relation_rules:
+        context = row.context or None
+        existing = session.scalar(
+            select(RelationRule)
+            .where(
+                RelationRule.from_tag_id == tag_by_code[row.from_tag_code].id,
+                RelationRule.to_tag_id == tag_by_code[row.to_tag_code].id,
+                RelationRule.context.is_(None) if context is None else RelationRule.context == context,
+                RelationRule.relation_type == row.relation_type,
+            )
+            .limit(1)
+        )
+        rule = existing or RelationRule(
+            from_tag_id=tag_by_code[row.from_tag_code].id,
+            to_tag_id=tag_by_code[row.to_tag_code].id,
+            context=context,
+            relation_type=row.relation_type,
+        )
+        if existing is None:
+            session.add(rule)
+        rule.transition_text = row.transition_text
+        rule.score_delta = row.score_delta
+        rule.priority = row.priority
+        rule.source_id = source_by_code[row.source_code].id if row.source_code else None
+        rule.source_locator = row.source_locator
+        rule.page_start = None
+        rule.page_end = None
+        rule.origin = row.origin
+        rule.review_status = row.review_status
+        rule.review_method = row.review_method
+        rule.review_notes = row.review_notes
+        rule.is_active = row.is_active
+
+    session.flush()
