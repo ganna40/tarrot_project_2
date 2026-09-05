@@ -13,6 +13,20 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: tarot_engine_test
+          POSTGRES_USER: tarot
+          POSTGRES_PASSWORD: tarot-test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tarot -d tarot_engine_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -29,6 +43,29 @@ jobs:
 
       - name: Run backend tests
         run: python -m pytest -q
+
+      - name: Verify PostgreSQL schema and seed
+        env:
+          PYTHONPATH: backend
+          TEST_DATABASE_URL: postgresql+psycopg://tarot:tarot-test-password@localhost:5432/tarot_engine_test
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine
+          from sqlalchemy.orm import Session
+          from app.models import Base
+          from app.repository import TarotRepository
+          from app.seed import seed_demo_knowledge
+
+          engine = create_engine(os.environ["TEST_DATABASE_URL"], pool_pre_ping=True)
+          Base.metadata.drop_all(engine)
+          Base.metadata.create_all(engine)
+          with Session(engine) as session:
+              seed_demo_knowledge(session)
+              session.commit()
+              assert TarotRepository(session).count_cards() == 78
+          engine.dispose()
+          PY
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
