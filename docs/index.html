@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tarot Engine v1 API 대화형 검증 페이지">
+  <title>Tarot Engine Lab</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <div>
+          <p class="eyebrow">RULE-DRIVEN TAROT</p>
+          <h1>Tarot Engine Lab</h1>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span id="connection-status" class="status-pill" data-status="demo">로컬 데모</span>
+        <button id="open-api-settings" class="button button-secondary" type="button">API 설정</button>
+      </div>
+    </header>
+
+    <form id="reading-form" class="workspace" novalidate>
+      <aside class="panel controls-panel" aria-label="리딩 설정">
+        <div class="panel-heading">
+          <div>
+            <p class="step-label">01</p>
+            <h2>리딩 설정</h2>
+          </div>
+          <button id="randomize-cards" class="icon-button" type="button" title="카드 무작위 선택" aria-label="카드 무작위 선택">↻</button>
+        </div>
+
+        <label class="field">
+          <span>질문 분야</span>
+          <select id="reading-context">
+            <option value="AUTO">자동 분류</option>
+            <option value="GENERAL">일반</option>
+            <option value="LOVE">연애·관계</option>
+            <option value="CAREER">직장·이직</option>
+            <option value="BUSINESS" selected>사업·투자</option>
+            <option value="MONEY">금전</option>
+            <option value="TIMING">시기</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>답변 길이</span>
+          <select id="response-length">
+            <option value="SHORT">짧게</option>
+            <option value="NORMAL" selected>보통</option>
+            <option value="DETAILED">상세하게</option>
+          </select>
+        </label>
+
+        <div class="card-stack" aria-label="세 장의 카드">
+          <div class="card-picker">
+            <div class="card-number">1</div>
+            <div class="card-fields">
+              <label for="card-1">시작</label>
+              <select id="card-1" class="card-select"></select>
+              <select id="orientation-1" aria-label="첫 번째 카드 방향">
+                <option value="UPRIGHT">정방향</option>
+                <option value="REVERSED">역방향</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-picker">
+            <div class="card-number">2</div>
+            <div class="card-fields">
+              <label for="card-2">전개</label>
+              <select id="card-2" class="card-select"></select>
+              <select id="orientation-2" aria-label="두 번째 카드 방향">
+                <option value="UPRIGHT">정방향</option>
+                <option value="REVERSED">역방향</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-picker">
+            <div class="card-number">3</div>
+            <div class="card-fields">
+              <label for="card-3">결과</label>
+              <select id="card-3" class="card-select"></select>
+              <select id="orientation-3" aria-label="세 번째 카드 방향">
+                <option value="UPRIGHT">정방향</option>
+                <option value="REVERSED">역방향</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-list">
+          <label class="toggle-row">
+            <span>
+              <strong>OpenAI 문장화</strong>
+              <small>백엔드의 use_llm 값</small>
+            </span>
+            <input id="use-llm" type="checkbox" checked>
+          </label>
+          <label class="toggle-row">
+            <span>
+              <strong>Trace 요청</strong>
+              <small>규칙·출처 확인용</small>
+            </span>
+            <input id="include-trace" type="checkbox" checked>
+          </label>
+        </div>
+      </aside>
+
+      <section class="panel chat-panel" aria-label="대화형 검증">
+        <div class="panel-heading chat-heading">
+          <div>
+            <p class="step-label">02</p>
+            <h2>대화형 검증</h2>
+          </div>
+          <button id="clear-chat" class="text-button" type="button">대화 지우기</button>
+        </div>
+
+        <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="타로 대화"></div>
+
+        <div class="composer">
+          <label class="field compact-field">
+            <span>상황 설명 <small>선택</small></span>
+            <textarea id="additional-context" rows="2" maxlength="1000" placeholder="예: 투자자가 플레이 가능한 데모를 보면 검토하겠다고 했습니다."></textarea>
+          </label>
+          <label class="field compact-field">
+            <span>질문</span>
+            <textarea id="question" rows="3" maxlength="2000" required>게임을 만들면 투자를 받을 수 있을까?</textarea>
+          </label>
+          <div class="composer-footer">
+            <p id="mode-hint">현재는 실제 API를 호출하지 않는 로컬 데모 모드입니다.</p>
+            <button id="submit-reading" class="button button-primary" type="submit">
+              <span>해석 요청</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel inspector-panel" aria-label="API 검사기">
+        <div class="panel-heading">
+          <div>
+            <p class="step-label">03</p>
+            <h2>API 검사기</h2>
+          </div>
+        </div>
+
+        <details open>
+          <summary>
+            <span>Request JSON</span>
+            <button class="copy-button" type="button" data-copy-target="request-json">복사</button>
+          </summary>
+          <pre id="request-json" class="code-block">아직 요청이 없습니다.</pre>
+        </details>
+
+        <details open>
+          <summary>
+            <span>Response JSON</span>
+            <button class="copy-button" type="button" data-copy-target="response-json">복사</button>
+          </summary>
+          <pre id="response-json" class="code-block">아직 응답이 없습니다.</pre>
+        </details>
+
+        <details>
+          <summary>
+            <span>Trace</span>
+            <button class="copy-button" type="button" data-copy-target="trace-json">복사</button>
+          </summary>
+          <pre id="trace-json" class="code-block">Trace가 없습니다.</pre>
+        </details>
+      </aside>
+    </form>
+
+    <footer>
+      <p>정적 UI는 OpenAI 키를 직접 받지 않습니다. 본인이 운영하는 백엔드 API만 연결하세요.</p>
+    </footer>
+  </div>
+
+  <dialog id="api-dialog" aria-labelledby="api-dialog-title">
+    <form id="api-settings-form" class="dialog-card">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">CONNECTION</p>
+          <h2 id="api-dialog-title">API 연결 설정</h2>
+        </div>
+        <button id="close-api-settings" class="icon-button" type="button" aria-label="닫기">×</button>
+      </div>
+
+      <label class="field">
+        <span>실행 모드</span>
+        <select id="connection-mode">
+          <option value="DEMO">로컬 데모</option>
+          <option value="REMOTE">원격 API</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>API 기본 URL</span>
+        <input id="api-base-url" type="url" inputmode="url" value="http://localhost:8000" placeholder="https://api.example.com">
+      </label>
+
+      <div class="two-column-fields">
+        <label class="field">
+          <span>상담 엔드포인트</span>
+          <input id="api-endpoint" type="text" value="/api/consultation">
+        </label>
+        <label class="field">
+          <span>Health 경로</span>
+          <input id="health-path" type="text" value="/health">
+        </label>
+      </div>
+
+      <div class="two-column-fields">
+        <label class="field">
+          <span>인증 방식</span>
+          <select id="auth-mode">
+            <option value="NONE">없음</option>
+            <option value="BEARER">Bearer Token</option>
+            <option value="X_API_KEY">X-API-Key</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>백엔드 접근 토큰</span>
+          <input id="api-token" type="password" autocomplete="off" placeholder="브라우저에 저장되지 않음">
+        </label>
+      </div>
+
+      <p class="security-note">
+        여기에 OpenAI API 키를 입력하지 마세요. 토큰 입력값은 현재 탭 메모리에만 유지되고 localStorage에는 저장되지 않습니다.
+      </p>
+
+      <p id="connection-test-result" class="connection-result" aria-live="polite"></p>
+
+      <div class="dialog-actions">
+        <button id="test-connection" class="button button-secondary" type="button">연결 테스트</button>
+        <button id="save-api-settings" class="button button-primary" type="submit">설정 적용</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html>
