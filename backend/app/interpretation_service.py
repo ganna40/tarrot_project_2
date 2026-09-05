@@ -5,11 +5,16 @@ from typing import Protocol
 from app.codex_service import CodexCLIInterpretationService
 from app.config import Settings, get_settings
 from app.openai_service import OpenAIInterpretationService
-from app.schemas import InterpretationPlan, ResponseLength
+from app.schemas import InterpretationOptions, InterpretationPlan, ResponseLength
 
 
 class InterpretationService(Protocol):
-    def generate(self, plan: InterpretationPlan, response_length: ResponseLength) -> str: ...
+    def generate(
+        self,
+        plan: InterpretationPlan,
+        response_length: ResponseLength,
+        options: InterpretationOptions | None = None,
+    ) -> str: ...
 
 
 def build_interpretation_service(settings: Settings | None = None) -> InterpretationService:
