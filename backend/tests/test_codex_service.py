@@ -122,7 +122,8 @@ def test_codex_subscription_service_runs_safe_ephemeral_exec_and_reads_final_mes
     assert result.startswith("종료 뒤 빠르게")
     command = captured["command"]
     assert command[0] == "C:/tools/codex.exe"
-    assert command[1] == "exec"
+    assert command[1:3] == ["--ask-for-approval", "never"]
+    assert command[3] == "exec"
     assert "--ephemeral" in command
     assert command[command.index("--sandbox") + 1] == "read-only"
     assert command[command.index("--model") + 1] == "test-model"
