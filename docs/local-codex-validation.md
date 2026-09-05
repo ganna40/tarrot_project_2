@@ -115,7 +115,8 @@ The Codex adapter runs one-shot commands with:
 codex exec
 --ephemeral
 --sandbox read-only
+--ask-for-approval never
 --skip-git-repo-check
 ```
 
-It also runs in a fresh temporary working directory. The prompt explicitly says that no file or tool use is required. This keeps the local validation path focused on wording rather than code/file operations.
+It also runs in a fresh temporary working directory. The prompt explicitly says that no file or tool use is required. This keeps the local validation path focused on wording rather than code/file operations and prevents an unattended request from waiting for an approval prompt.
