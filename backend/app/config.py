@@ -12,9 +12,20 @@ class Settings(BaseSettings):
     auto_seed_curated: bool = True
     auto_seed_demo: bool | None = None
     api_access_key: str | None = None
+
+    # LLM wording provider. The deterministic tarot engine remains authoritative.
+    llm_provider: str = "openai_api"
+
+    # OpenAI API provider settings.
     openai_api_key: str | None = None
     openai_model: str | None = None
     openai_timeout_seconds: float = 30.0
+
+    # Local Codex subscription provider settings.
+    # Authentication is owned by the Codex CLI (`codex login`), not by this app.
+    codex_executable: str = "codex"
+    codex_model: str | None = None
+    codex_timeout_seconds: float = 120.0
 
     @property
     def auto_seed_enabled(self) -> bool:
