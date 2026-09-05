@@ -91,14 +91,12 @@ test('interactive deck supports one-card draw, random three-card draw, shuffle, 
 });
 
 test('completed readings expose clickable follow-up questions that start a fresh draw', async () => {
-  const [html, app] = await Promise.all([
-    read('docs/index.html'),
-    read('docs/assets/app.js'),
-  ]);
+  const app = await read('docs/assets/app.js');
 
-  assert.match(html, /\.\/assets\/follow-up\.js/);
-  assert.match(app, /tarot:reading-rendered/);
+  assert.match(app, /renderFollowUpQuestions/);
   assert.match(app, /follow_up_questions/);
+  assert.match(app, /drawThreeVisualCards/);
+  assert.match(app, /다음으로 이런 부분을 확인해볼 수 있어요/);
 });
 
 test('one-command local web launcher starts backend, static frontend, and opens Local Codex mode', async () => {
