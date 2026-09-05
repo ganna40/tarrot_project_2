@@ -1,4 +1,9 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
+
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
 
 $body = @{
     question = "게임을 만들면 실제 투자로 이어질까?"
@@ -15,11 +20,29 @@ $body = @{
     use_llm = $true
 } | ConvertTo-Json -Depth 8
 
-$result = Invoke-RestMethod `
-    -Uri "http://127.0.0.1:8000/api/v1/readings" `
-    -Method Post `
-    -ContentType "application/json; charset=utf-8" `
-    -Body $body
+Add-Type -AssemblyName System.Net.Http
+$client = New-Object System.Net.Http.HttpClient
+$content = New-Object System.Net.Http.StringContent($body, [System.Text.Encoding]::UTF8, "application/json")
+
+try {
+    $response = $client.PostAsync(
+        "http://127.0.0.1:8000/api/v1/readings",
+        $content
+    ).GetAwaiter().GetResult()
+
+    $responseBytes = $response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+    $responseText = [System.Text.Encoding]::UTF8.GetString($responseBytes)
+
+    if (-not $response.IsSuccessStatusCode) {
+        throw "HTTP $([int]$response.StatusCode): $responseText"
+    }
+
+    $result = $responseText | ConvertFrom-Json
+}
+finally {
+    $content.Dispose()
+    $client.Dispose()
+}
 
 Write-Host ""
 Write-Host "=== Codex subscription validation ==="
