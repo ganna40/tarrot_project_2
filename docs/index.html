@@ -50,10 +50,45 @@
           <span>답변 길이</span>
           <select id="response-length">
             <option value="SHORT">짧게</option>
-            <option value="NORMAL" selected>보통</option>
-            <option value="DETAILED">상세하게</option>
+            <option value="NORMAL">보통</option>
+            <option value="DETAILED" selected>상세하게</option>
           </select>
         </label>
+
+        <div class="ai-control-group">
+          <label class="field">
+            <span>AI 모델</span>
+            <input id="llm-model" type="text" list="llm-model-options" value="gpt-5.6-sol" maxlength="128" autocomplete="off" spellcheck="false" placeholder="비우면 Codex CLI 기본 모델">
+            <datalist id="llm-model-options">
+              <option value="gpt-5.6-sol"></option>
+              <option value="gpt-5.5"></option>
+              <option value="gpt-5.4"></option>
+            </datalist>
+            <small>목록에 없는 모델 ID도 직접 입력할 수 있습니다. 비우면 Codex CLI 기본 모델을 사용합니다.</small>
+          </label>
+
+          <label class="field">
+            <span>추론 강도</span>
+            <select id="llm-reasoning-effort">
+              <option value="DEFAULT">CLI 기본값</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="XHIGH" selected>XHigh</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>해설 스타일</span>
+            <select id="interpretation-style">
+              <option value="PRECISE">정확하게 · 핵심 위주</option>
+              <option value="BALANCED">균형 · 흐름과 맥락</option>
+              <option value="RICH" selected>풍부하게 · 상징·심리·현실 연결</option>
+            </select>
+          </label>
+
+          <p class="security-note">Temperature는 Codex CLI에서 별도 조절하지 않으며 모델 기본 동작을 사용합니다. 표현의 폭과 해설 밀도는 해설 스타일과 verbosity로 조정합니다.</p>
+        </div>
 
         <div class="card-stack" aria-label="세 장의 카드">
           <div class="card-picker">
@@ -102,7 +137,7 @@
           <label class="toggle-row">
             <span>
               <strong>Trace 요청</strong>
-              <small>규칙·출처 확인용</small>
+              <small>규칙·출처·실제 AI 설정 확인용</small>
             </span>
             <input id="include-trace" type="checkbox" checked>
           </label>
