@@ -6,9 +6,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const required = [
   'docs/index.html',
   'docs/styles.css',
+  'docs/visual-draw.css',
   'docs/.nojekyll',
   'docs/assets/app.js',
   'docs/assets/cards.js',
+  'docs/assets/visual-draw.js',
   'docs/assets/payload.js',
   'docs/assets/api-client.js',
   'docs/assets/response.js',
