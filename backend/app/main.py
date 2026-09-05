@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.database import close_database, get_session, init_database
 from app.engine import calculate_reading, classify_context, validate_card_inputs
 from app.fallback import build_advice, build_fallback_interpretation
+from app.follow_up import build_follow_up_questions
 from app.interpretation_service import InterpretationService, build_interpretation_service
 from app.repository import KnowledgeNotReadyError, TarotRepository
 from app.schemas import ReadingRequest, ReadingResponse
@@ -165,6 +166,7 @@ def create_app(
             cards=plan.cards,
             overall_interpretation=overall_interpretation,
             advice=build_advice(plan),
+            follow_up_questions=build_follow_up_questions(plan),
             llm_used=llm_used,
             llm_model=options.model,
             llm_reasoning_effort=options.reasoning_effort,
