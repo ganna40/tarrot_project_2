@@ -3,7 +3,6 @@ import { buildConsultationPayload, ReadingValidationError } from './payload.js';
 import { ApiRequestError, checkHealth, requestConsultation } from './api-client.js';
 import { normalizeTarotResponse, verdictLabel } from './response.js';
 import { runDemoConsultation } from './demo.js';
-import { drawThreeVisualCards } from './visual-draw.js';
 
 const SETTINGS_KEY = 'tarot-engine-validator-settings-v1';
 const DEFAULT_SETTINGS = Object.freeze({
@@ -222,7 +221,7 @@ function renderFollowUpQuestions(questions) {
     button.addEventListener('click', () => {
       elements.question.value = question;
       elements.question.dispatchEvent(new Event('input', { bubbles: true }));
-      drawThreeVisualCards();
+      $('draw-three-cards')?.click();
       elements.question.focus();
       elements.question.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
