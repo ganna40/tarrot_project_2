@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import hmac
 import logging
 from collections.abc import Generator
 from contextlib import asynccontextmanager
 from typing import Any, Protocol
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, sessionmaker
@@ -30,9 +31,11 @@ def create_app(
     session_factory: sessionmaker[Session] | None = None,
     openai_service: InterpretationService | None = None,
     run_startup_seed: bool = True,
+    api_access_key: str | None = None,
 ) -> FastAPI:
     settings = get_settings()
     service = openai_service or OpenAIInterpretationService(settings=settings)
+    effective_access_key = api_access_key or settings.api_access_key
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -77,14 +80,29 @@ def create_app(
             return
         yield from get_session()
 
+    def require_access(
+        authorization: str | None = Header(default=None),
+        x_api_key: str | None = Header(default=None),
+    ) -> None:
+        if not effective_access_key:
+            return
+        bearer = ""
+        if authorization and authorization.lower().startswith("bearer "):
+            bearer = authorization[7:].strip()
+        candidate = x_api_key or bearer
+        if not candidate or not hmac.compare_digest(candidate, effective_access_key):
+            raise HTTPException(status_code=401, detail="Invalid or missing API access key")
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "healthy", "app": settings.app_name, "version": "1.0.0"}
 
+    @app.post("/api/consultation", response_model=ReadingResponse, include_in_schema=False)
     @app.post("/api/v1/readings", response_model=ReadingResponse)
     def create_reading(
         request: ReadingRequest,
         session: Session = Depends(session_dependency),
+        _access: None = Depends(require_access),
     ) -> ReadingResponse | JSONResponse:
         repository = TarotRepository(session)
         card_inputs = request.cards or repository.draw_supported_cards(3)

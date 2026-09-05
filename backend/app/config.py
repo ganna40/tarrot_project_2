@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./tarot.db"
     allowed_origins: str = "http://localhost:8080,http://127.0.0.1:8080,https://ganna40.github.io"
     auto_seed_demo: bool = True
+    api_access_key: str | None = None
     openai_api_key: str | None = None
     openai_model: str | None = None
     openai_timeout_seconds: float = 30.0

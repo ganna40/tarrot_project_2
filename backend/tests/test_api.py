@@ -20,7 +20,7 @@ class FailingOpenAIService:
         raise RuntimeError("simulated failure")
 
 
-def build_client(openai_service=None) -> TestClient:
+def build_client(openai_service=None, api_access_key=None) -> TestClient:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -31,7 +31,12 @@ def build_client(openai_service=None) -> TestClient:
     with factory() as session:
         seed_demo_knowledge(session)
         session.commit()
-    app = create_app(session_factory=factory, openai_service=openai_service, run_startup_seed=False)
+    app = create_app(
+        session_factory=factory,
+        openai_service=openai_service,
+        run_startup_seed=False,
+        api_access_key=api_access_key,
+    )
     return TestClient(app)
 
 
@@ -82,7 +87,7 @@ def test_openai_text_does_not_change_engine_fields():
         without_llm = client.post("/api/v1/readings", json=known_request(use_llm=False)).json()
 
     assert with_llm["llm_used"] is True
-    assert with_lm["overall_interpretation"].startswith("엔진이 확정한")
+    assert with_llm["overall_interpretation"].startswith("엔진이 확정한")
     for field in ("reading_context", "verdict", "score", "flow_summary"):
         assert with_llm[field] == without_llm[field]
 
@@ -93,7 +98,7 @@ def test_openai_failure_uses_rule_based_fallback():
 
     assert response.status_code == 200
     assert response.json()["llm_used"] is False
-    assert response.json)["overall_interpretation"]
+    assert response.json()["overall_interpretation"]
 
 
 def test_duplicate_card_request_returns_422():
@@ -132,7 +137,49 @@ def test_github_pages_origin_is_allowed_by_cors():
                 "Origin": "https://ganna40.github.io",
                 "Access-Control-Request-Method": "POST",
             },
-         )
+        )
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "https://ganna40.github.io"
+
+
+def test_static_validator_compatibility_endpoint():
+    with build_client() as client:
+        response = client.post("/api/consultation", json=known_request())
+
+    assert response.status_code == 200
+    assert response.json()["verdict"] == "CAUTIOUS"
+
+
+def test_x_api_key_header_is_allowed_by_cors():
+    with build_client() as client:
+        response = client.options(
+            "/api/v1/readings",
+            headers={
+                "Origin": "https://ganna40.github.io",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "X-API-Key",
+            },
+        )
+
+    assert response.status_code == 200
+    assert "x-api-key" in response.headers["access-control-allow-headers"].lower()
+
+
+def test_optional_api_access_key_accepts_bearer_and_x_api_key():
+    with build_client(api_access_key="test-secret") as client:
+        missing = client.post("/api/v1/readings", json=known_request())
+        bearer = client.post(
+            "/api/v1/readings",
+            json=known_request(),
+            headers={"Authorization": "Bearer test-secret"},
+        )
+        x_key = client.post(
+            "/api/v1/readings",
+            json=known_request(),
+            headers={"X-API-Key": "test-secret"},
+        )
+
+    assert missing.status_code == 401
+    assert bearer.status_code == 200
+    assert x_key.status_code == 200
