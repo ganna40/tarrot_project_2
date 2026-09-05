@@ -1,17 +1,15 @@
-name: Tarot Engine CI
+name: Bootstrap curated tarot dataset
 
 on:
   push:
     branches: [new]
-  pull_request:
-    branches: [new]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  verify:
+  apply-and-verify:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -28,8 +26,15 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - name: Checkout repository
+      - name: Checkout staged update
         uses: actions/checkout@v6
+
+      - name: Reassemble and extract verified update
+        run: |
+          cat .bootstrap/update.part.* > /tmp/tarot-curated-update.tar.xz
+          echo "9d639892d26405465f17ea6e5d68feb639c41956eecdfadc9ba50f02335b6631  /tmp/tarot-curated-update.tar.xz" | sha256sum --check
+          tar -xJf /tmp/tarot-curated-update.tar.xz -C .
+          rm -rf .bootstrap
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -41,29 +46,38 @@ jobs:
       - name: Install backend dependencies
         run: python -m pip install -r backend/requirements.txt
 
+      - name: Validate curated public-domain dataset
+        env:
+          PYTHONPATH: backend
+        run: python ingestion/validate_candidates.py
+
       - name: Run backend tests
         run: python -m pytest -q
 
-      - name: Verify PostgreSQL schema and seed
+      - name: Verify PostgreSQL schema and complete seed
         env:
           PYTHONPATH: backend
           TEST_DATABASE_URL: postgresql+psycopg://tarot:tarot-test-password@localhost:5432/tarot_engine_test
         run: |
           python - <<'PY'
           import os
-          from sqlalchemy import create_engine
+          from sqlalchemy import create_engine, func, select
           from sqlalchemy.orm import Session
-          from app.models import Base
-          from app.repository import TarotRepository
-          from app.seed import seed_demo_knowledge
+          from app.models import Base, CardCorrespondence, CardMeaning, CardMeaningTag, RelationRule, TarotCard
+          from app.seed import seed_public_domain_knowledge
 
           engine = create_engine(os.environ["TEST_DATABASE_URL"], pool_pre_ping=True)
           Base.metadata.drop_all(engine)
           Base.metadata.create_all(engine)
           with Session(engine) as session:
-              seed_demo_knowledge(session)
+              seed_public_domain_knowledge(session)
+              seed_public_domain_knowledge(session)
               session.commit()
-              assert TarotRepository(session).count_cards() == 78
+              assert session.scalar(select(func.count()).select_from(TarotCard)) == 78
+              assert session.scalar(select(func.count()).select_from(CardMeaning)) == 156
+              assert session.scalar(select(func.count()).select_from(CardMeaningTag)) == 342
+              assert session.scalar(select(func.count()).select_from(CardCorrespondence)) == 385
+              assert session.scalar(select(func.count()).select_from(RelationRule)) == 55
           engine.dispose()
           PY
 
@@ -78,12 +92,10 @@ jobs:
       - name: Validate static site
         run: npm run check:static
 
-      - name: Upload verified source snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: tarot-engine-source-${{ github.sha }}
-          path: |
-            .
-            !.git
-          include-hidden-files: true
-          retention-days: 1
+      - name: Commit verified update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add public-domain tarot knowledge"
+          git push origin HEAD:new
