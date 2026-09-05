@@ -61,7 +61,7 @@ $env:DATABASE_URL = "sqlite:///./tarot-local.db"
 $env:AUTO_SEED_CURATED = "true"
 $env:CODEX_EXECUTABLE = "codex"
 if (-not $env:CODEX_TIMEOUT_SECONDS) {
-    $env:CODEX_TIMEOUT_SECONDS = "120"
+    $env:CODEX_TIMEOUT_SECONDS = "180"
 }
 
 $logDir = Join-Path $repoRoot ".local"
@@ -118,6 +118,7 @@ try {
     Write-Host "Backend : http://127.0.0.1:8000"
     Write-Host "Swagger : http://127.0.0.1:8000/docs"
     Write-Host "LLM     : codex_subscription"
+    Write-Host "Defaults: gpt-5.6-sol / XHigh / 풍부하게 / 상세하게"
     Write-Host "Logs    : $logDir"
     Write-Host "종료    : Ctrl+C"
     Write-Host ""
