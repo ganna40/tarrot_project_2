@@ -4,7 +4,6 @@ import hmac
 import logging
 from collections.abc import Generator
 from contextlib import asynccontextmanager
-from typing import Any, Protocol
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,16 +14,12 @@ from app.config import get_settings
 from app.database import close_database, get_session, init_database
 from app.engine import calculate_reading, classify_context, validate_card_inputs
 from app.fallback import build_advice, build_fallback_interpretation
-from app.openai_service import OpenAIInterpretationService
+from app.interpretation_service import InterpretationService, build_interpretation_service
 from app.repository import KnowledgeNotReadyError, TarotRepository
-from app.schemas import ReadingRequest, ReadingResponse, ResponseLength
+from app.schemas import ReadingRequest, ReadingResponse
 from app.seed import seed_public_domain_knowledge
 
 logger = logging.getLogger(__name__)
-
-
-class InterpretationService(Protocol):
-    def generate(self, plan: Any, response_length: ResponseLength) -> str: ...
 
 
 def create_app(
@@ -34,7 +29,9 @@ def create_app(
     api_access_key: str | None = None,
 ) -> FastAPI:
     settings = get_settings()
-    service = openai_service or OpenAIInterpretationService(settings=settings)
+    # `openai_service` is retained as the injection argument name for compatibility
+    # with existing tests/callers. The default can now be OpenAI API or local Codex.
+    service = openai_service or build_interpretation_service(settings)
     effective_access_key = api_access_key or settings.api_access_key
 
     @asynccontextmanager
@@ -143,7 +140,7 @@ def create_app(
                     overall_interpretation = generated
                     llm_used = True
             except Exception as exc:
-                logger.warning("OpenAI interpretation failed; fallback used: %s", exc)
+                logger.warning("LLM interpretation failed; fallback used: %s", exc)
 
         trace = None
         if request.include_trace:
