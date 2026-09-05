@@ -25,6 +25,15 @@ const elements = {
   slots: [1, 2, 3].map((index) => $(`draw-slot-${index}`)),
 };
 
+function ensureVisualDrawStyles() {
+  if (document.querySelector('link[data-visual-draw-styles]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('../visual-draw.css', import.meta.url).href;
+  link.dataset.visualDrawStyles = 'true';
+  document.head.append(link);
+}
+
 function clearRevealTimers() {
   state.revealTimers.forEach((timer) => clearTimeout(timer));
   state.revealTimers = [];
@@ -151,6 +160,7 @@ function toggleDrawnOrientation(index) {
 function initializeVisualDraw() {
   if (!elements.deck || elements.slots.some((slot) => !slot)) return;
 
+  ensureVisualDrawStyles();
   shuffleVisualDeck();
   elements.deck.addEventListener('click', drawOneVisualCard);
   elements.drawOne.addEventListener('click', drawOneVisualCard);
