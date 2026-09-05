@@ -93,6 +93,8 @@ class CodexCLIInterpretationService:
                 "--ephemeral",
                 "--sandbox",
                 "read-only",
+                "--ask-for-approval",
+                "never",
                 "--skip-git-repo-check",
                 "--color",
                 "never",
