@@ -29,8 +29,6 @@ def create_app(
     api_access_key: str | None = None,
 ) -> FastAPI:
     settings = get_settings()
-    # `openai_service` is retained as the injection argument name for compatibility
-    # with existing tests/callers. The default can now be OpenAI API or local Codex.
     service = openai_service or build_interpretation_service(settings)
     effective_access_key = api_access_key or settings.api_access_key
 
@@ -38,7 +36,6 @@ def create_app(
     async def lifespan(_app: FastAPI):
         if session_factory is None:
             init_database()
-
         if run_startup_seed and settings.auto_seed_enabled:
             if session_factory is not None:
                 with session_factory() as session:
@@ -103,14 +100,10 @@ def create_app(
     ) -> ReadingResponse | JSONResponse:
         repository = TarotRepository(session)
         card_inputs = request.cards or repository.draw_supported_cards(3)
-
         try:
             validate_card_inputs(card_inputs)
         except ValueError as exc:
-            return JSONResponse(
-                status_code=422,
-                content={"error": "INVALID_CARDS", "message": str(exc)},
-            )
+            return JSONResponse(status_code=422, content={"error": "INVALID_CARDS", "message": str(exc)})
 
         reading_context = request.reading_context or classify_context(request.question, request.context)
         try:
@@ -118,10 +111,7 @@ def create_app(
             transitions = repository.resolve_transitions(cards, reading_context)
             elemental_modifier = repository.elemental_modifier(cards)
         except KnowledgeNotReadyError as exc:
-            return JSONResponse(
-                status_code=503,
-                content={"error": "KNOWLEDGE_NOT_READY", "message": str(exc)},
-            )
+            return JSONResponse(status_code=503, content={"error": "KNOWLEDGE_NOT_READY", "message": str(exc)})
 
         plan = calculate_reading(
             question=request.question,
@@ -131,11 +121,12 @@ def create_app(
             elemental_modifier=elemental_modifier,
         )
 
+        options = request.interpretation_options()
         overall_interpretation = build_fallback_interpretation(plan, request.response_length)
         llm_used = False
         if request.use_llm:
             try:
-                generated = service.generate(plan, request.response_length).strip()
+                generated = service.generate(plan, request.response_length, options).strip()
                 if generated:
                     overall_interpretation = generated
                     llm_used = True
@@ -147,6 +138,7 @@ def create_app(
             trace = {
                 "flow_tags": plan.flow_tags,
                 "elemental_modifier": plan.elemental_modifier,
+                "llm_options": options.model_dump(mode="json"),
                 "transitions": [transition.model_dump(mode="json") for transition in plan.transitions],
                 "cards": [
                     {
@@ -174,6 +166,9 @@ def create_app(
             overall_interpretation=overall_interpretation,
             advice=build_advice(plan),
             llm_used=llm_used,
+            llm_model=options.model,
+            llm_reasoning_effort=options.reasoning_effort,
+            interpretation_style=options.style,
             trace=trace,
         )
 
