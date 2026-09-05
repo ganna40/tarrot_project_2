@@ -153,6 +153,101 @@
           <button id="clear-chat" class="text-button" type="button">대화 지우기</button>
         </div>
 
+        <section id="visual-draw-stage" class="visual-draw-stage" aria-label="카드 덱에서 뽑기">
+          <div class="draw-stage-heading">
+            <div>
+              <p class="eyebrow">CARD DRAW</p>
+              <h3>덱에서 직접 뽑기</h3>
+              <p>덱을 눌러 한 장씩 뽑거나, 랜덤 3장으로 시작·전개·결과를 한 번에 선택하세요.</p>
+            </div>
+            <div class="draw-stage-actions">
+              <button id="shuffle-deck" class="button button-secondary" type="button">다시 섞기</button>
+              <button id="draw-three-cards" class="button button-primary" type="button">랜덤 3장</button>
+            </div>
+          </div>
+
+          <div class="draw-stage-body">
+            <div class="deck-zone">
+              <button id="tarot-deck" class="tarot-deck" type="button" aria-label="타로 덱에서 한 장 뽑기">
+                <span class="deck-layer deck-layer-back" aria-hidden="true"></span>
+                <span class="deck-layer deck-layer-middle" aria-hidden="true"></span>
+                <span class="deck-card-back">
+                  <span class="deck-star">✦</span>
+                  <span class="deck-ring" aria-hidden="true"></span>
+                  <span class="deck-title">TAROT</span>
+                </span>
+              </button>
+              <button id="draw-one-card" class="button button-secondary draw-one-button" type="button">한 장 뽑기</button>
+              <p id="deck-status" class="deck-status">덱 78장 · 아직 뽑지 않음</p>
+            </div>
+
+            <div class="draw-slots" aria-live="polite">
+              <article id="draw-slot-1" class="draw-slot" data-slot="1" data-revealed="false" data-orientation="UPRIGHT">
+                <p class="draw-slot-label">1 · 시작</p>
+                <div class="tarot-flip-card">
+                  <div class="tarot-flip-inner">
+                    <div class="tarot-card-back">
+                      <span class="card-back-symbol">✦</span>
+                      <span class="card-back-lines" aria-hidden="true"></span>
+                    </div>
+                    <div class="tarot-card-front">
+                      <div class="tarot-face-content">
+                        <span class="face-arcana" data-face-arcana>READY</span>
+                        <span class="face-glyph" data-face-glyph>✦</span>
+                        <strong class="face-name-ko" data-face-name-ko>카드 1</strong>
+                        <span class="face-name-en" data-face-name-en>Draw a card</span>
+                        <span class="face-orientation" data-face-orientation>정방향</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article id="draw-slot-2" class="draw-slot" data-slot="2" data-revealed="false" data-orientation="UPRIGHT">
+                <p class="draw-slot-label">2 · 전개</p>
+                <div class="tarot-flip-card">
+                  <div class="tarot-flip-inner">
+                    <div class="tarot-card-back">
+                      <span class="card-back-symbol">✦</span>
+                      <span class="card-back-lines" aria-hidden="true"></span>
+                    </div>
+                    <div class="tarot-card-front">
+                      <div class="tarot-face-content">
+                        <span class="face-arcana" data-face-arcana>READY</span>
+                        <span class="face-glyph" data-face-glyph>✦</span>
+                        <strong class="face-name-ko" data-face-name-ko>카드 2</strong>
+                        <span class="face-name-en" data-face-name-en>Draw a card</span>
+                        <span class="face-orientation" data-face-orientation>정방향</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article id="draw-slot-3" class="draw-slot" data-slot="3" data-revealed="false" data-orientation="UPRIGHT">
+                <p class="draw-slot-label">3 · 결과</p>
+                <div class="tarot-flip-card">
+                  <div class="tarot-flip-inner">
+                    <div class="tarot-card-back">
+                      <span class="card-back-symbol">✦</span>
+                      <span class="card-back-lines" aria-hidden="true"></span>
+                    </div>
+                    <div class="tarot-card-front">
+                      <div class="tarot-face-content">
+                        <span class="face-arcana" data-face-arcana>READY</span>
+                        <span class="face-glyph" data-face-glyph>✦</span>
+                        <strong class="face-name-ko" data-face-name-ko>카드 3</strong>
+                        <span class="face-name-en" data-face-name-en>Draw a card</span>
+                        <span class="face-orientation" data-face-orientation>정방향</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="타로 대화"></div>
 
         <div class="composer">
