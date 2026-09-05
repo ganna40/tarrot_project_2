@@ -22,15 +22,16 @@ Detailed source decisions: [`docs/data/public-domain-source-register.md`](docs/d
 GitHub Pages validator
         │ POST /api/v1/readings
         ▼
-FastAPI
+Render FastAPI web service (HTTPS)
   ├─ question context classification
   ├─ PostgreSQL approved-knowledge lookup
   ├─ tag transition rules
   ├─ Golden Dawn elemental dignity modifier
   ├─ deterministic score, verdict, and flow
   └─ optional OpenAI wording
+        │
         ▼
-PostgreSQL
+Render PostgreSQL
 ```
 
 OpenAI API keys are never entered in the static page. `OPENAI_API_KEY` stays in the backend environment only.
@@ -53,7 +54,60 @@ Public URL:
 https://ganna40.github.io/tarrot_project_2/
 ```
 
-The Pages UI can run in local demo mode without any backend. For real engine verification, connect it to an externally reachable HTTPS FastAPI backend from the `API 설정` dialog.
+The Pages UI can run in local demo mode without any backend. For real engine verification, connect it to the Render HTTPS API described below.
+
+## Deploy backend to Render
+
+The root `render.yaml` provisions both a FastAPI web service and PostgreSQL in Render's Singapore region.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ganna40/tarrot_project_2/tree/new)
+
+During the first Blueprint deployment Render asks for these secret values:
+
+```text
+API_ACCESS_KEY   a long random string you will also enter in the Pages API settings
+OPENAI_API_KEY   your server-side OpenAI API key
+OPENAI_MODEL     the OpenAI API model ID you want to use
+```
+
+`API_ACCESS_KEY` protects the public backend so other visitors cannot spend your OpenAI API quota. Never use the OpenAI API key itself as the browser access token.
+
+The Blueprint automatically configures:
+
+```text
+Web service: tarot-engine-api-ganna40
+Database:    tarot-engine-db-ganna40
+Region:      Singapore
+Plan:        Free
+CORS:        https://ganna40.github.io
+Health:      /health
+Branch:      new
+```
+
+After Render reports the web service as Live, copy its HTTPS URL. It will be an `onrender.com` address assigned by Render.
+
+Then open:
+
+```text
+https://ganna40.github.io/tarrot_project_2/
+```
+
+and configure `API 설정`:
+
+```text
+실행 모드: 원격 API
+API 기본 URL: https://<your-render-service>.onrender.com
+상담 엔드포인트: /api/v1/readings
+Health 경로: /health
+인증 방식: Bearer Token
+백엔드 접근 토큰: the same API_ACCESS_KEY configured in Render
+```
+
+The browser sends only `API_ACCESS_KEY` to the backend. The OpenAI key remains exclusively in Render's server-side environment.
+
+### Free-tier note
+
+Render Free web services can spin down after inactivity, so the first request after a pause can take longer. Free Render Postgres is intended for evaluation and currently expires after its free retention period; upgrade or move the database before relying on it for persistent production data.
 
 ## Run backend locally
 
@@ -169,6 +223,7 @@ GitHub Actions repeats the dataset validator, backend tests, a real PostgreSQL s
 ## Core files
 
 ```text
+render.yaml                  Render Web Service + PostgreSQL Blueprint
 backend/app/curated_data.py   typed CSV loader and validator
 backend/app/seed.py           idempotent public-domain seed
 backend/app/models.py         normalized database models
