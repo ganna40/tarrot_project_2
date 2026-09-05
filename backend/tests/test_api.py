@@ -1,0 +1,138 @@
+from __future__ import annotations
+
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.main import create_app
+from app.models import Base
+from app.seed import seed_demo_knowledge
+
+
+class FakeOpenAIService:
+    def generate(self, plan, response_length):
+        return "엔진이 확정한 흐름을 유지한 테스트용 문장입니다."
+
+
+class FailingOpenAIService:
+    def generate(self, plan, response_length):
+        raise RuntimeError("simulated failure")
+
+
+def build_client(openai_service=None) -> TestClient:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(engine, expire_on_commit=False)
+    with factory() as session:
+        seed_demo_knowledge(session)
+        session.commit()
+    app = create_app(session_factory=factory, openai_service=openai_service, run_startup_seed=False)
+    return TestClient(app)
+
+
+def known_request(**overrides):
+    payload = {
+        "question": "게임을 만들면 투자를 받을 수 있을까?",
+        "context": "투자자가 데모를 보면 검토한다고 말했다.",
+        "reading_context": "BUSINESS",
+        "spread_type": "three_card",
+        "cards": [
+            {"code": "TEN_OF_SWORDS", "orientation": "UPRIGHT"},
+            {"code": "EIGHT_OF_WANDS", "orientation": "UPRIGHT"},
+            {"code": "HIEROPHANT", "orientation": "UPRIGHT"},
+        ],
+        "response_length": "SHORT",
+        "include_trace": True,
+        "use_llm": False,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_health_endpoint():
+    with build_client() as client:
+        response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+
+
+def test_known_reading_returns_deterministic_flow_and_trace():
+    with build_client() as client:
+        response = client.post("/api/v1/readings", json=known_request())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["reading_context"] == "BUSINESS"
+    assert body["verdict"] == "CAUTIOUS"
+    assert "공식적인 구조" in body["flow_summary"]
+    assert body["llm_used"] is False
+    assert [item["relation_type"] for item in body["trace"]["transitions"]] == ["ACCELERATE", "FORMALIZE"]
+    assert body["trace"]["cards"][0]["source_code"] == "INTERNAL_DEMO"
+
+
+def test_openai_text_does_not_change_engine_fields():
+    with build_client(FakeOpenAIService()) as client:
+        with_llm = client.post("/api/v1/readings", json=known_request(use_llm=True)).json()
+    with build_client() as client:
+        without_llm = client.post("/api/v1/readings", json=known_request(use_llm=False)).json()
+
+    assert with_llm["llm_used"] is True
+    assert with_lm["overall_interpretation"].startswith("엔진이 확정한")
+    for field in ("reading_context", "verdict", "score", "flow_summary"):
+        assert with_llm[field] == without_llm[field]
+
+
+def test_openai_failure_uses_rule_based_fallback():
+    with build_client(FailingOpenAIService()) as client:
+        response = client.post("/api/v1/readings", json=known_request(use_llm=True))
+
+    assert response.status_code == 200
+    assert response.json()["llm_used"] is False
+    assert response.json)["overall_interpretation"]
+
+
+def test_duplicate_card_request_returns_422():
+    payload = known_request()
+    payload["cards"][1]["code"] = "TEN_OF_SWORDS"
+    with build_client() as client:
+        response = client.post("/api/v1/readings", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"] == "INVALID_CARDS"
+
+
+def test_unsupported_card_returns_503_knowledge_not_ready():
+    payload = known_request()
+    payload["cards"][0]["code"] = "FOOL"
+    with build_client() as client:
+        response = client.post("/api/v1/readings", json=payload)
+
+    assert response.status_code == 503
+    assert response.json()["error"] == "KNOWLEDGE_NOT_READY"
+
+
+def test_server_can_draw_three_supported_cards():
+    with build_client() as client:
+        response = client.post("/api/v1/readings", json=known_request(cards=None, include_trace=False))
+
+    assert response.status_code == 200
+    assert len(response.json()["cards"]) == 3
+
+
+def test_github_pages_origin_is_allowed_by_cors():
+    with build_client() as client:
+        response = client.options(
+            "/api/v1/readings",
+            headers={
+                "Origin": "https://ganna40.github.io",
+                "Access-Control-Request-Method": "POST",
+            },
+         )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://ganna40.github.io"
