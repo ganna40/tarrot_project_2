@@ -28,3 +28,28 @@ test('API token is never persisted to localStorage', async () => {
   assert.doesNotMatch(app, /localStorage\.setItem\([^\n]*(token|apiKey|api_key)/i);
   assert.match(app, /delete\s+serializable\.token/);
 });
+
+test('frontend exposes a Local Codex preset that targets the local v1 reading API', async () => {
+  const [html, app] = await Promise.all([
+    read('docs/index.html'),
+    read('docs/assets/app.js'),
+  ]);
+
+  assert.match(html, /option\s+value=["']LOCAL_CODEX["'][^>]*>\s*로컬 Codex/);
+  assert.match(app, /LOCAL_CODEX_SETTINGS/);
+  assert.match(app, /http:\/\/127\.0\.0\.1:8000/);
+  assert.match(app, /\/api\/v1\/readings/);
+  assert.match(app, /URLSearchParams/);
+  assert.match(app, /local-codex/i);
+});
+
+test('one-command local web launcher starts backend, static frontend, and opens Local Codex mode', async () => {
+  const script = await read('scripts/run_codex_web.ps1');
+
+  assert.match(script, /LLM_PROVIDER/);
+  assert.match(script, /codex_subscription/);
+  assert.match(script, /uvicorn/);
+  assert.match(script, /http\.server/);
+  assert.match(script, /127\.0\.0\.1:8080/);
+  assert.match(script, /mode=local-codex/i);
+});
