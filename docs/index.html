@@ -94,8 +94,8 @@
         <div class="toggle-list">
           <label class="toggle-row">
             <span>
-              <strong>OpenAI 문장화</strong>
-              <small>백엔드의 use_llm 값</small>
+              <strong>LLM 문장화</strong>
+              <small>백엔드의 use_llm 값 · Local Codex에서는 ChatGPT 구독 사용</small>
             </span>
             <input id="use-llm" type="checkbox" checked>
           </label>
@@ -174,7 +174,7 @@
     </form>
 
     <footer>
-      <p>정적 UI는 OpenAI 키를 직접 받지 않습니다. 본인이 운영하는 백엔드 API만 연결하세요.</p>
+      <p>정적 UI는 OpenAI 키를 직접 받지 않습니다. Local Codex 모드는 로컬 백엔드가 이미 로그인된 Codex CLI를 호출합니다.</p>
     </footer>
   </div>
 
@@ -192,6 +192,7 @@
         <span>실행 모드</span>
         <select id="connection-mode">
           <option value="DEMO">로컬 데모</option>
+          <option value="LOCAL_CODEX">로컬 Codex</option>
           <option value="REMOTE">원격 API</option>
         </select>
       </label>
