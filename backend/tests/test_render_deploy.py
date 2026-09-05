@@ -16,7 +16,8 @@ def test_explicit_sqlalchemy_driver_url_is_unchanged():
 
 
 def test_render_blueprint_provisions_web_and_postgres():
-    blueprint = Path(__file__).resolve().parents[2] / "render.yaml"
+    root = Path(__file__).resolve().parents[2]
+    blueprint = root / "render.yaml"
     text = blueprint.read_text(encoding="utf-8")
 
     for expected in (
@@ -38,3 +39,6 @@ def test_render_blueprint_provisions_web_and_postgres():
         "name: tarot-engine-db-ganna40",
     ):
         assert expected in text
+
+    dockerfile = (root / "backend" / "Dockerfile").read_text(encoding="utf-8")
+    assert "${PORT:-8000}" in dockerfile
