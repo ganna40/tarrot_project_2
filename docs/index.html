@@ -158,7 +158,7 @@
             <div>
               <p class="eyebrow">CARD DRAW</p>
               <h3>덱에서 직접 뽑기</h3>
-              <p>덱을 눌러 한 장씩 뽑거나, 랜덤 3장으로 시작·전개·결과를 한 번에 선택하세요.</p>
+              <p>덱을 눌러 한 장씩 뽑거나, 랜덤 3장으로 시작·전개·결과를 한 번에 선택하세요. 뽑힌 카드를 누르면 정/역방향을 바꿀 수 있습니다.</p>
             </div>
             <div class="draw-stage-actions">
               <button id="shuffle-deck" class="button button-secondary" type="button">다시 섞기</button>
@@ -184,65 +184,38 @@
             <div class="draw-slots" aria-live="polite">
               <article id="draw-slot-1" class="draw-slot" data-slot="1" data-revealed="false" data-orientation="UPRIGHT">
                 <p class="draw-slot-label">1 · 시작</p>
-                <div class="tarot-flip-card">
-                  <div class="tarot-flip-inner">
-                    <div class="tarot-card-back">
-                      <span class="card-back-symbol">✦</span>
-                      <span class="card-back-lines" aria-hidden="true"></span>
-                    </div>
-                    <div class="tarot-card-front">
-                      <div class="tarot-face-content">
-                        <span class="face-arcana" data-face-arcana>READY</span>
-                        <span class="face-glyph" data-face-glyph>✦</span>
-                        <strong class="face-name-ko" data-face-name-ko>카드 1</strong>
-                        <span class="face-name-en" data-face-name-en>Draw a card</span>
-                        <span class="face-orientation" data-face-orientation>정방향</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <div class="tarot-flip-card"><div class="tarot-flip-inner">
+                  <div class="tarot-card-back"><span class="card-back-symbol">✦</span><span class="card-back-lines" aria-hidden="true"></span></div>
+                  <div class="tarot-card-front"><div class="tarot-face-content">
+                    <span class="face-arcana" data-face-arcana>READY</span><span class="face-glyph" data-face-glyph>✦</span>
+                    <strong class="face-name-ko" data-face-name-ko>카드 1</strong><span class="face-name-en" data-face-name-en>Draw a card</span>
+                    <span class="face-orientation" data-face-orientation>정방향</span>
+                  </div></div>
+                </div></div>
               </article>
 
               <article id="draw-slot-2" class="draw-slot" data-slot="2" data-revealed="false" data-orientation="UPRIGHT">
                 <p class="draw-slot-label">2 · 전개</p>
-                <div class="tarot-flip-card">
-                  <div class="tarot-flip-inner">
-                    <div class="tarot-card-back">
-                      <span class="card-back-symbol">✦</span>
-                      <span class="card-back-lines" aria-hidden="true"></span>
-                    </div>
-                    <div class="tarot-card-front">
-                      <div class="tarot-face-content">
-                        <span class="face-arcana" data-face-arcana>READY</span>
-                        <span class="face-glyph" data-face-glyph>✦</span>
-                        <strong class="face-name-ko" data-face-name-ko>카드 2</strong>
-                        <span class="face-name-en" data-face-name-en>Draw a card</span>
-                        <span class="face-orientation" data-face-orientation>정방향</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <div class="tarot-flip-card"><div class="tarot-flip-inner">
+                  <div class="tarot-card-back"><span class="card-back-symbol">✦</span><span class="card-back-lines" aria-hidden="true"></span></div>
+                  <div class="tarot-card-front"><div class="tarot-face-content">
+                    <span class="face-arcana" data-face-arcana>READY</span><span class="face-glyph" data-face-glyph>✦</span>
+                    <strong class="face-name-ko" data-face-name-ko>카드 2</strong><span class="face-name-en" data-face-name-en>Draw a card</span>
+                    <span class="face-orientation" data-face-orientation>정방향</span>
+                  </div></div>
+                </div></div>
               </article>
 
               <article id="draw-slot-3" class="draw-slot" data-slot="3" data-revealed="false" data-orientation="UPRIGHT">
                 <p class="draw-slot-label">3 · 결과</p>
-                <div class="tarot-flip-card">
-                  <div class="tarot-flip-inner">
-                    <div class="tarot-card-back">
-                      <span class="card-back-symbol">✦</span>
-                      <span class="card-back-lines" aria-hidden="true"></span>
-                    </div>
-                    <div class="tarot-card-front">
-                      <div class="tarot-face-content">
-                        <span class="face-arcana" data-face-arcana>READY</span>
-                        <span class="face-glyph" data-face-glyph>✦</span>
-                        <strong class="face-name-ko" data-face-name-ko>카드 3</strong>
-                        <span class="face-name-en" data-face-name-en>Draw a card</span>
-                        <span class="face-orientation" data-face-orientation>정방향</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <div class="tarot-flip-card"><div class="tarot-flip-inner">
+                  <div class="tarot-card-back"><span class="card-back-symbol">✦</span><span class="card-back-lines" aria-hidden="true"></span></div>
+                  <div class="tarot-card-front"><div class="tarot-face-content">
+                    <span class="face-arcana" data-face-arcana>READY</span><span class="face-glyph" data-face-glyph>✦</span>
+                    <strong class="face-name-ko" data-face-name-ko>카드 3</strong><span class="face-name-en" data-face-name-en>Draw a card</span>
+                    <span class="face-orientation" data-face-orientation>정방향</span>
+                  </div></div>
+                </div></div>
               </article>
             </div>
           </div>
@@ -270,107 +243,36 @@
       </section>
 
       <aside class="panel inspector-panel" aria-label="API 검사기">
-        <div class="panel-heading">
-          <div>
-            <p class="step-label">03</p>
-            <h2>API 검사기</h2>
-          </div>
-        </div>
-
-        <details open>
-          <summary>
-            <span>Request JSON</span>
-            <button class="copy-button" type="button" data-copy-target="request-json">복사</button>
-          </summary>
-          <pre id="request-json" class="code-block">아직 요청이 없습니다.</pre>
-        </details>
-
-        <details open>
-          <summary>
-            <span>Response JSON</span>
-            <button class="copy-button" type="button" data-copy-target="response-json">복사</button>
-          </summary>
-          <pre id="response-json" class="code-block">아직 응답이 없습니다.</pre>
-        </details>
-
-        <details>
-          <summary>
-            <span>Trace</span>
-            <button class="copy-button" type="button" data-copy-target="trace-json">복사</button>
-          </summary>
-          <pre id="trace-json" class="code-block">Trace가 없습니다.</pre>
-        </details>
+        <div class="panel-heading"><div><p class="step-label">03</p><h2>API 검사기</h2></div></div>
+        <details open><summary><span>Request JSON</span><button class="copy-button" type="button" data-copy-target="request-json">복사</button></summary><pre id="request-json" class="code-block">아직 요청이 없습니다.</pre></details>
+        <details open><summary><span>Response JSON</span><button class="copy-button" type="button" data-copy-target="response-json">복사</button></summary><pre id="response-json" class="code-block">아직 응답이 없습니다.</pre></details>
+        <details><summary><span>Trace</span><button class="copy-button" type="button" data-copy-target="trace-json">복사</button></summary><pre id="trace-json" class="code-block">Trace가 없습니다.</pre></details>
       </aside>
     </form>
 
-    <footer>
-      <p>정적 UI는 OpenAI 키를 직접 받지 않습니다. Local Codex 모드는 로컬 백엔드가 이미 로그인된 Codex CLI를 호출합니다.</p>
-    </footer>
+    <footer><p>정적 UI는 OpenAI 키를 직접 받지 않습니다. Local Codex 모드는 로컬 백엔드가 이미 로그인된 Codex CLI를 호출합니다.</p></footer>
   </div>
 
   <dialog id="api-dialog" aria-labelledby="api-dialog-title">
     <form id="api-settings-form" class="dialog-card">
-      <div class="dialog-heading">
-        <div>
-          <p class="eyebrow">CONNECTION</p>
-          <h2 id="api-dialog-title">API 연결 설정</h2>
-        </div>
-        <button id="close-api-settings" class="icon-button" type="button" aria-label="닫기">×</button>
-      </div>
-
-      <label class="field">
-        <span>실행 모드</span>
-        <select id="connection-mode">
-          <option value="DEMO">로컬 데모</option>
-          <option value="LOCAL_CODEX">로컬 Codex</option>
-          <option value="REMOTE">원격 API</option>
-        </select>
-      </label>
-
-      <label class="field">
-        <span>API 기본 URL</span>
-        <input id="api-base-url" type="url" inputmode="url" value="http://localhost:8000" placeholder="https://api.example.com">
-      </label>
-
+      <div class="dialog-heading"><div><p class="eyebrow">CONNECTION</p><h2 id="api-dialog-title">API 연결 설정</h2></div><button id="close-api-settings" class="icon-button" type="button" aria-label="닫기">×</button></div>
+      <label class="field"><span>실행 모드</span><select id="connection-mode"><option value="DEMO">로컬 데모</option><option value="LOCAL_CODEX">로컬 Codex</option><option value="REMOTE">원격 API</option></select></label>
+      <label class="field"><span>API 기본 URL</span><input id="api-base-url" type="url" inputmode="url" value="http://localhost:8000" placeholder="https://api.example.com"></label>
       <div class="two-column-fields">
-        <label class="field">
-          <span>상담 엔드포인트</span>
-          <input id="api-endpoint" type="text" value="/api/consultation">
-        </label>
-        <label class="field">
-          <span>Health 경로</span>
-          <input id="health-path" type="text" value="/health">
-        </label>
+        <label class="field"><span>상담 엔드포인트</span><input id="api-endpoint" type="text" value="/api/consultation"></label>
+        <label class="field"><span>Health 경로</span><input id="health-path" type="text" value="/health"></label>
       </div>
-
       <div class="two-column-fields">
-        <label class="field">
-          <span>인증 방식</span>
-          <select id="auth-mode">
-            <option value="NONE">없음</option>
-            <option value="BEARER">Bearer Token</option>
-            <option value="X_API_KEY">X-API-Key</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>백엔드 접근 토큰</span>
-          <input id="api-token" type="password" autocomplete="off" placeholder="브라우저에 저장되지 않음">
-        </label>
+        <label class="field"><span>인증 방식</span><select id="auth-mode"><option value="NONE">없음</option><option value="BEARER">Bearer Token</option><option value="X_API_KEY">X-API-Key</option></select></label>
+        <label class="field"><span>백엔드 접근 토큰</span><input id="api-token" type="password" autocomplete="off" placeholder="브라우저에 저장되지 않음"></label>
       </div>
-
-      <p class="security-note">
-        여기에 OpenAI API 키를 입력하지 마세요. 토큰 입력값은 현재 탭 메모리에만 유지되고 localStorage에는 저장되지 않습니다.
-      </p>
-
+      <p class="security-note">여기에 OpenAI API 키를 입력하지 마세요. 토큰 입력값은 현재 탭 메모리에만 유지되고 localStorage에는 저장되지 않습니다.</p>
       <p id="connection-test-result" class="connection-result" aria-live="polite"></p>
-
-      <div class="dialog-actions">
-        <button id="test-connection" class="button button-secondary" type="button">연결 테스트</button>
-        <button id="save-api-settings" class="button button-primary" type="submit">설정 적용</button>
-      </div>
+      <div class="dialog-actions"><button id="test-connection" class="button button-secondary" type="button">연결 테스트</button><button id="save-api-settings" class="button button-primary" type="submit">설정 적용</button></div>
     </form>
   </dialog>
 
   <script type="module" src="./assets/app.js"></script>
+  <script type="module" src="./assets/visual-draw.js"></script>
 </body>
 </html>
