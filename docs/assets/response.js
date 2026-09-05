@@ -22,6 +22,9 @@ export function normalizeTarotResponse(raw) {
     cards: Array.isArray(source.cards) ? source.cards : [],
     trace: source.trace ?? null,
     llmUsed: Boolean(source.llm_used ?? source.llmUsed),
+    llmModel: source.llm_model ?? source.llmModel ?? null,
+    llmReasoningEffort: source.llm_reasoning_effort ?? source.llmReasoningEffort ?? 'DEFAULT',
+    interpretationStyle: source.interpretation_style ?? source.interpretationStyle ?? 'BALANCED',
     disclaimer: source.disclaimer ?? '',
     raw: source,
   };
