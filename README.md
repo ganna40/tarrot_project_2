@@ -35,7 +35,27 @@ PostgreSQL
 
 OpenAI API keys are never entered in the static page. `OPENAI_API_KEY` stays in the backend environment only.
 
-## Run locally
+## GitHub Pages
+
+The repository includes `.github/workflows/pages.yml`, which publishes `docs/` as the web UI.
+
+One-time repository setting:
+
+```text
+Settings → Pages → Build and deployment → Source: GitHub Actions
+```
+
+After that, pushes to `new` that change `docs/**` deploy automatically.
+
+Public URL:
+
+```text
+https://ganna40.github.io/tarrot_project_2/
+```
+
+The Pages UI can run in local demo mode without any backend. For real engine verification, connect it to an externally reachable HTTPS FastAPI backend from the `API 설정` dialog.
+
+## Run backend locally
 
 ```bash
 cp .env.example .env
@@ -73,7 +93,9 @@ API_ACCESS_KEY=a-long-random-value
 
 The static validator can send this value as a Bearer token or `X-API-Key`. Do not use the OpenAI key as the access token.
 
-## Static validator
+## Local static validator
+
+Local serving is optional and mainly useful when testing an HTTP localhost backend, because an HTTPS GitHub Pages site cannot call an insecure HTTP backend in normal browsers.
 
 ```bash
 python3 -m http.server 8080 --directory docs
@@ -83,27 +105,6 @@ PowerShell:
 
 ```powershell
 py -m http.server 8080 --directory docs
-```
-
-Open `http://localhost:8080`, then configure:
-
-```text
-Mode: Remote API
-Base URL: http://localhost:8000
-Endpoint: /api/v1/readings
-Health: /health
-```
-
-To publish from GitHub Pages:
-
-```text
-Settings → Pages → Deploy from a branch → new → /docs
-```
-
-Expected project URL:
-
-```text
-https://ganna40.github.io/tarrot_project_2/
 ```
 
 ## Curated-data workflow
@@ -181,4 +182,5 @@ ingestion/load_candidates.py
 
 backend/data/curated/         reviewable source-derived package
 docs/                         GitHub Pages validator
+.github/workflows/pages.yml   GitHub Pages deployment
 ```
