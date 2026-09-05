@@ -7,3 +7,7 @@ Thumbs.db
 coverage/
 data/sources/private/
 node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.db

@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tarot_engine}
+      POSTGRES_USER: ${POSTGRES_USER:-tarot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tarot} -d ${POSTGRES_DB:-tarot_engine}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - tarot_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://tarot:change-this-password@db:5432/tarot_engine}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,https://ganna40.github.io}
+      AUTO_SEED_DEMO: ${AUTO_SEED_DEMO:-true}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-30}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+volumes:
+  tarot_postgres_data:
