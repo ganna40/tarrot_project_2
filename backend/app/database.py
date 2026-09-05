@@ -32,6 +32,18 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
 }
 
 
+def normalize_database_url(database_url: str) -> str:
+    """Use SQLAlchemy's psycopg3 dialect for generic PostgreSQL URLs.
+
+    Managed providers such as Render expose `postgresql://...` connection
+    strings. This project installs psycopg3, so make the driver explicit while
+    leaving already-qualified SQLAlchemy URLs unchanged.
+    """
+    if database_url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + database_url[len("postgresql://") :]
+    return database_url
+
+
 def apply_additive_migrations(engine: Engine) -> None:
     """Add traceability columns when upgrading a database from the demo schema."""
     inspector = inspect(engine)
@@ -55,7 +67,8 @@ _session_factory: sessionmaker[Session] | None = None
 
 
 def build_engine(database_url: str | None = None) -> Engine:
-    url = database_url or get_settings().database_url
+    raw_url = database_url or get_settings().database_url
+    url = normalize_database_url(raw_url)
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
     return create_engine(url, pool_pre_ping=True, connect_args=connect_args)
 
