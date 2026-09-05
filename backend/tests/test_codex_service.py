@@ -131,6 +131,7 @@ def test_codex_subscription_service_runs_safe_ephemeral_exec_and_reads_final_mes
     kwargs = captured["kwargs"]
     assert kwargs["input"].find("기존 단계가 끝나고 빠르게 움직인 뒤") >= 0
     assert kwargs["input"].find("카드 뜻을 따로 나열하지") >= 0
+    assert kwargs["encoding"] == "utf-8"
     assert kwargs["timeout"] == 12
 
 
