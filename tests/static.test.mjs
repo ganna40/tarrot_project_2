@@ -90,6 +90,17 @@ test('interactive deck supports one-card draw, random three-card draw, shuffle, 
   assert.match(visualCss, /backface-visibility:\s*hidden/);
 });
 
+test('completed readings expose clickable follow-up questions that start a fresh draw', async () => {
+  const [html, app] = await Promise.all([
+    read('docs/index.html'),
+    read('docs/assets/app.js'),
+  ]);
+
+  assert.match(html, /\.\/assets\/follow-up\.js/);
+  assert.match(app, /tarot:reading-rendered/);
+  assert.match(app, /follow_up_questions/);
+});
+
 test('one-command local web launcher starts backend, static frontend, and opens Local Codex mode', async () => {
   const script = await read('scripts/run_codex_web.ps1');
 
