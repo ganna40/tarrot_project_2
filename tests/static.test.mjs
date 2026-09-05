@@ -95,7 +95,7 @@ test('completed readings expose clickable follow-up questions that start a fresh
 
   assert.match(app, /renderFollowUpQuestions/);
   assert.match(app, /follow_up_questions/);
-  assert.match(app, /drawThreeVisualCards/);
+  assert.match(app, /draw-three-cards/);
   assert.match(app, /다음으로 이런 부분을 확인해볼 수 있어요/);
 });
 
