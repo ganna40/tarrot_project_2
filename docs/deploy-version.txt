@@ -1,0 +1,4 @@
+Tarot Engine Lab web deployment
+Generated: 2026-09-05
+Frontend: GitHub Pages
+Backend target: Render HTTPS
