@@ -87,14 +87,17 @@ class CodexCLIInterpretationService:
 
         with tempfile.TemporaryDirectory(prefix="tarot-codex-") as temp_dir:
             output_path = Path(temp_dir) / "last-message.txt"
+            # --ask-for-approval is a global Codex flag, so it must appear before
+            # the `exec` subcommand. Keeping it after `exec` fails on current CLI
+            # releases even though the flag itself is valid globally.
             command = [
                 executable,
+                "--ask-for-approval",
+                "never",
                 "exec",
                 "--ephemeral",
                 "--sandbox",
                 "read-only",
-                "--ask-for-approval",
-                "never",
                 "--skip-git-repo-check",
                 "--color",
                 "never",
