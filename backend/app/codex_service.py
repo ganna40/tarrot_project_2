@@ -112,6 +112,7 @@ class CodexCLIInterpretationService:
                 command,
                 input=prompt,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 timeout=self.settings.codex_timeout_seconds,
                 cwd=temp_dir,
