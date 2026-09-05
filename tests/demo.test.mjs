@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { runDemoConsultation } from '../docs/assets/demo.js';
 
@@ -37,4 +38,17 @@ test('returns an explicit mock response for other valid cards', async () => {
   const response = await runDemoConsultation(payload);
   assert.equal(response.verdict, 'DEMO');
   assert.match(response.overall_interpretation, /로컬 데모/);
+});
+
+test('Windows PowerShell scripts preserve UTF-8 source and explicitly decode API bytes as UTF-8', () => {
+  const runScript = readFileSync(new URL('../scripts/run_codex_local.ps1', import.meta.url));
+  const testScript = readFileSync(new URL('../scripts/test_codex_local.ps1', import.meta.url));
+
+  assert.deepEqual([...runScript.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+  assert.deepEqual([...testScript.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+
+  const text = testScript.toString('utf8');
+  assert.match(text, /ReadAsByteArrayAsync/);
+  assert.match(text, /\[System\.Text\.Encoding\]::UTF8\.GetString/);
+  assert.doesNotMatch(text, /Invoke-RestMethod/);
 });
