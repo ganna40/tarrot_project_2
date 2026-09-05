@@ -74,6 +74,16 @@ const minorCards = SUITS.flatMap(([suit, suitKo, suitEn], suitIndex) =>
 export const TAROT_CARDS = Object.freeze([...majorCards, ...minorCards]);
 export const CARD_BY_CODE = new Map(TAROT_CARDS.map((card) => [card.code, card]));
 
+function defaultRandomIndex(max) {
+  if (!Number.isInteger(max) || max <= 0) throw new RangeError('max must be a positive integer');
+  if (globalThis.crypto?.getRandomValues) {
+    const value = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(value);
+    return value[0] % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
 export function getCard(code) {
   const card = CARD_BY_CODE.get(code);
   if (!card) {
@@ -94,4 +104,21 @@ export function groupLabel(card) {
     SWORDS: '마이너 · 소드',
     PENTACLES: '마이너 · 펜타클',
   }[card.suit];
+}
+
+export function drawRandomCards(count = 3, randomIndex = defaultRandomIndex) {
+  if (!Number.isInteger(count) || count < 1 || count > TAROT_CARDS.length) {
+    throw new RangeError(`count must be between 1 and ${TAROT_CARDS.length}`);
+  }
+
+  const pool = [...TAROT_CARDS];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = randomIndex(i + 1);
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  return pool.slice(0, count).map((card) => ({
+    card,
+    orientation: randomIndex(10) < 3 ? 'REVERSED' : 'UPRIGHT',
+  }));
 }
