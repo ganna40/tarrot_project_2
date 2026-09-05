@@ -64,9 +64,9 @@ test('Local Codex web mode defaults to GPT-5.6 Sol, xhigh, rich, and detailed', 
 });
 
 test('interactive deck supports one-card draw, random three-card draw, shuffle, and flip reveal', async () => {
-  const [html, app, css] = await Promise.all([
+  const [html, visualDraw, css] = await Promise.all([
     read('docs/index.html'),
-    read('docs/assets/app.js'),
+    read('docs/assets/visual-draw.js'),
     read('docs/styles.css'),
   ]);
 
@@ -76,11 +76,12 @@ test('interactive deck supports one-card draw, random three-card draw, shuffle, 
   ]) {
     assert.match(html, new RegExp(`id=["']${id}["']`));
   }
-  assert.match(app, /drawRandomCards/);
-  assert.match(app, /drawOneVisualCard/);
-  assert.match(app, /drawThreeVisualCards/);
-  assert.match(app, /shuffleVisualDeck/);
-  assert.match(app, /syncVisualDrawToSelectors/);
+  assert.match(html, /\.\/assets\/visual-draw\.js/);
+  assert.match(visualDraw, /drawRandomCards/);
+  assert.match(visualDraw, /drawOneVisualCard/);
+  assert.match(visualDraw, /drawThreeVisualCards/);
+  assert.match(visualDraw, /shuffleVisualDeck/);
+  assert.match(visualDraw, /syncVisualDrawToSelectors/);
   assert.match(css, /transform-style:\s*preserve-3d/);
   assert.match(css, /rotateY\(180deg\)/);
   assert.match(css, /backface-visibility:\s*hidden/);
