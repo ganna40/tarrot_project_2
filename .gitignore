@@ -1,0 +1,9 @@
+!.env.example
+.DS_Store
+.env
+.env.*
+.verification/
+Thumbs.db
+coverage/
+data/sources/private/
+node_modules/
