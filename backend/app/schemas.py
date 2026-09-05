@@ -170,6 +170,7 @@ class ReadingResponse(BaseModel):
     cards: list[ResolvedCard]
     overall_interpretation: str
     advice: str
+    follow_up_questions: list[str] = Field(default_factory=list, min_length=3, max_length=3)
     llm_used: bool
     llm_model: str | None = None
     llm_reasoning_effort: LLMReasoningEffort = LLMReasoningEffort.DEFAULT
