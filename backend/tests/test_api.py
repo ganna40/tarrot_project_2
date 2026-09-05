@@ -11,13 +11,22 @@ from app.seed import seed_public_domain_knowledge
 
 
 class FakeOpenAIService:
-    def generate(self, plan, response_length):
+    def generate(self, plan, response_length, options=None):
         return "엔진이 확정한 흐름을 유지한 테스트용 문장입니다."
 
 
 class FailingOpenAIService:
-    def generate(self, plan, response_length):
+    def generate(self, plan, response_length, options=None):
         raise RuntimeError("simulated failure")
+
+
+class CapturingInterpretationService:
+    def __init__(self):
+        self.options = None
+
+    def generate(self, plan, response_length, options=None):
+        self.options = options
+        return "요청별 AI 설정이 적용된 테스트 해석입니다."
 
 
 def build_client(openai_service=None, api_access_key=None) -> TestClient:
@@ -91,6 +100,30 @@ def test_openai_text_does_not_change_engine_fields():
     assert with_llm["overall_interpretation"].startswith("엔진이 확정한")
     for field in ("reading_context", "verdict", "score", "flow_summary"):
         assert with_llm[field] == without_llm[field]
+
+
+def test_reading_passes_per_request_model_reasoning_and_style_to_interpretation_service():
+    service = CapturingInterpretationService()
+    payload = known_request(
+        use_llm=True,
+        response_length="DETAILED",
+        llm_model="gpt-5.6-sol",
+        llm_reasoning_effort="XHIGH",
+        interpretation_style="RICH",
+    )
+
+    with build_client(service) as client:
+        response = client.post("/api/v1/readings", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["llm_used"] is True
+    assert body["llm_model"] == "gpt-5.6-sol"
+    assert body["llm_reasoning_effort"] == "XHIGH"
+    assert body["interpretation_style"] == "RICH"
+    assert service.options.model == "gpt-5.6-sol"
+    assert service.options.reasoning_effort.value == "XHIGH"
+    assert service.options.style.value == "RICH"
 
 
 def test_openai_failure_uses_rule_based_fallback():
