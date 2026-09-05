@@ -3,6 +3,7 @@ import { buildConsultationPayload, ReadingValidationError } from './payload.js';
 import { ApiRequestError, checkHealth, requestConsultation } from './api-client.js';
 import { normalizeTarotResponse, verdictLabel } from './response.js';
 import { runDemoConsultation } from './demo.js';
+import { drawThreeVisualCards } from './visual-draw.js';
 
 const SETTINGS_KEY = 'tarot-engine-validator-settings-v1';
 const DEFAULT_SETTINGS = Object.freeze({
@@ -190,6 +191,49 @@ function appendMessage({ role, text = '', meta = '', tags = [], flow = '', advic
   return article;
 }
 
+function renderFollowUpQuestions(questions) {
+  const candidates = Array.isArray(questions)
+    ? questions.map((question) => String(question ?? '').trim()).filter(Boolean).slice(0, 3)
+    : [];
+  if (!candidates.length) return;
+
+  const article = document.createElement('article');
+  article.className = 'message message-system';
+
+  const label = document.createElement('p');
+  label.className = 'message-meta';
+  label.textContent = 'NEXT QUESTIONS';
+  article.append(label);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'message-bubble';
+
+  const intro = document.createElement('p');
+  intro.textContent = '다음으로 이런 부분을 확인해볼 수 있어요.';
+  bubble.append(intro);
+
+  const actions = document.createElement('div');
+  actions.className = 'message-tags';
+  candidates.forEach((question) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'button button-secondary';
+    button.textContent = question;
+    button.addEventListener('click', () => {
+      elements.question.value = question;
+      elements.question.dispatchEvent(new Event('input', { bubbles: true }));
+      drawThreeVisualCards();
+      elements.question.focus();
+      elements.question.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    actions.append(button);
+  });
+  bubble.append(actions);
+  article.append(bubble);
+  elements.chatLog.append(article);
+  elements.chatLog.scrollTop = elements.chatLog.scrollHeight;
+}
+
 function resetChat() {
   elements.chatLog.replaceChildren();
   appendMessage({
@@ -333,6 +377,7 @@ function renderResponse(response) {
   });
   elements.responseJson.textContent = pretty(normalized.raw);
   elements.traceJson.textContent = normalized.trace ? pretty(normalized.trace) : 'Trace가 없습니다.';
+  renderFollowUpQuestions(normalized.raw.follow_up_questions);
 }
 
 async function handleReadingSubmit(event) {
