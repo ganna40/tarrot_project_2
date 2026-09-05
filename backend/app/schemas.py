@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from enum import Enum
 from typing import Any
 
@@ -32,6 +33,38 @@ class ResponseLength(str, Enum):
     DETAILED = "DETAILED"
 
 
+class LLMReasoningEffort(str, Enum):
+    DEFAULT = "DEFAULT"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    XHIGH = "XHIGH"
+
+
+class InterpretationStyle(str, Enum):
+    PRECISE = "PRECISE"
+    BALANCED = "BALANCED"
+    RICH = "RICH"
+
+
+class InterpretationOptions(BaseModel):
+    model: str | None = Field(default=None, max_length=128)
+    reasoning_effort: LLMReasoningEffort = LLMReasoningEffort.DEFAULT
+    style: InterpretationStyle = InterpretationStyle.BALANCED
+
+    @field_validator("model")
+    @classmethod
+    def normalize_model(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            return None
+        if not re.fullmatch(r"[A-Za-z0-9._:-]+", normalized):
+            raise ValueError("LLM 모델 ID에는 영문, 숫자, 점, 밑줄, 콜론, 하이픈만 사용할 수 있습니다")
+        return normalized
+
+
 class CardInput(BaseModel):
     code: str = Field(min_length=1, max_length=64)
     orientation: Orientation = Orientation.UPRIGHT
@@ -51,6 +84,9 @@ class ReadingRequest(BaseModel):
     response_length: ResponseLength = ResponseLength.SHORT
     include_trace: bool = False
     use_llm: bool = True
+    llm_model: str | None = Field(default=None, max_length=128)
+    llm_reasoning_effort: LLMReasoningEffort = LLMReasoningEffort.DEFAULT
+    interpretation_style: InterpretationStyle = InterpretationStyle.BALANCED
 
     @field_validator("spread_type")
     @classmethod
@@ -58,6 +94,18 @@ class ReadingRequest(BaseModel):
         if value != "three_card":
             raise ValueError("v1은 three_card 스프레드만 지원합니다")
         return value
+
+    @field_validator("llm_model")
+    @classmethod
+    def normalize_llm_model(cls, value: str | None) -> str | None:
+        return InterpretationOptions.normalize_model(value)
+
+    def interpretation_options(self) -> InterpretationOptions:
+        return InterpretationOptions(
+            model=self.llm_model,
+            reasoning_effort=self.llm_reasoning_effort,
+            style=self.interpretation_style,
+        )
 
 
 class ResolvedCard(BaseModel):
@@ -123,5 +171,8 @@ class ReadingResponse(BaseModel):
     overall_interpretation: str
     advice: str
     llm_used: bool
+    llm_model: str | None = None
+    llm_reasoning_effort: LLMReasoningEffort = LLMReasoningEffort.DEFAULT
+    interpretation_style: InterpretationStyle = InterpretationStyle.BALANCED
     trace: dict[str, Any] | None = None
     disclaimer: str = "타로 해석은 참고용이며 중요한 결정의 유일한 근거로 사용하지 마세요."
