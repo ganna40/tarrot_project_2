@@ -16,7 +16,7 @@ def build_fallback_interpretation(
 ) -> str:
     """Create a deterministic response when LLM use is disabled or unavailable."""
     opener = _VERDICT_OPENERS[plan.verdict]
-    core = f"카드의 연결은 {plan.flow_summary}을 보여줍니다."
+    core = f"카드의 연결 흐름은 다음과 같습니다. {plan.flow_summary}"
 
     if response_length == ResponseLength.SHORT:
         return f"{opener} {core}"

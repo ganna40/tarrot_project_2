@@ -124,6 +124,7 @@ class TarotRepository:
                     orientation=card_input.orientation,
                     position_order=position.position_order,
                     position_label=position.label_ko,
+                    position_weight=position.weight,
                     meaning=meaning.meaning_text,
                     advice=meaning.advice_text,
                     warning=meaning.warning_text,

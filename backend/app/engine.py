@@ -21,8 +21,6 @@ _CONTEXT_KEYWORDS: dict[ReadingContext, tuple[str, ...]] = {
     ReadingContext.TIMING: ("언제", "시기", "이번 달", "이번주", "올해", "내년", "며칠"),
 }
 
-_POSITION_WEIGHTS = (0.9, 1.0, 1.2)
-
 
 def classify_context(question: str, additional_context: str | None = None) -> ReadingContext:
     text = f"{question} {additional_context or ''}".lower()
@@ -58,8 +56,8 @@ def _flow_summary(cards: Sequence[ResolvedCard], transitions: Sequence[Transitio
     if transitions:
         texts = [transition.transition_text.rstrip(".。 ") for transition in transitions]
         if len(texts) == 1:
-            return f"{texts[0]} 흐름"
-        return f"{texts[0]}고, 이어서 {texts[1]} 흐름"
+            return f"{texts[0]}."
+        return f"{texts[0]}. 이어서 {texts[1]}."
 
     tags = " → ".join(card.primary_tag for card in cards)
     return f"{tags} 순서로 국면이 전개되는 흐름"
@@ -75,8 +73,11 @@ def calculate_reading(
     if len(cards) != 3:
         raise ValueError("v1 해석에는 정확히 3장의 카드가 필요합니다")
 
-    weighted_total = sum(card.polarity * weight for card, weight in zip(cards, _POSITION_WEIGHTS, strict=True))
-    base_score = weighted_total / sum(_POSITION_WEIGHTS)
+    weighted_total = sum(card.polarity * card.position_weight for card in cards)
+    total_weight = sum(card.position_weight for card in cards)
+    if total_weight <= 0:
+        raise ValueError("스프레드 위치 가중치 합계는 0보다 커야 합니다")
+    base_score = weighted_total / total_weight
     relation_score = sum(transition.score_delta for transition in transitions)
     final_score = max(-5.0, min(5.0, base_score + relation_score + elemental_modifier))
     final_score = round(final_score, 2)

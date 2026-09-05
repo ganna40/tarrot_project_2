@@ -64,6 +64,7 @@ def test_exact_business_meaning_is_preferred(session_factory):
     assert "사업" in cards[1].meaning
     assert cards[0].position_label == "시작"
     assert cards[2].position_label == "결과"
+    assert [card.position_weight for card in cards] == [0.9, 1.0, 1.2]
 
 
 def test_general_meaning_is_used_when_context_specific_row_is_missing(session_factory):

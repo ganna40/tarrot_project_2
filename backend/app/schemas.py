@@ -69,6 +69,7 @@ class ResolvedCard(BaseModel):
     orientation: Orientation
     position_order: int
     position_label: str
+    position_weight: float = Field(gt=0, le=20)
     meaning: str
     advice: str | None = None
     warning: str | None = None

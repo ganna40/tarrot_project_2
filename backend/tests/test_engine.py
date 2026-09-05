@@ -20,6 +20,7 @@ def card(
     action: float = 2,
     speed: float = 2,
     element: str | None = None,
+    position_weight: float = 1.0,
 ) -> ResolvedCard:
     return ResolvedCard(
         code=code,
@@ -28,6 +29,7 @@ def card(
         orientation=Orientation.UPRIGHT,
         position_order=1,
         position_label="",
+        position_weight=position_weight,
         meaning="테스트 의미",
         advice="테스트 조언",
         warning=None,
@@ -102,7 +104,23 @@ def test_known_business_flow_is_calculated_before_language_generation():
     assert plan.flow_tags == ["ENDING", "MOVEMENT", "FORMALIZATION"]
     assert "빠르게" in plan.flow_summary
     assert "공식적인 구조" in plan.flow_summary
+    assert "시작한다고" not in plan.flow_summary
+    assert plan.flow_summary.endswith("이어진다.")
     assert -1.25 < plan.score < 1.25
+
+
+
+def test_score_uses_position_weights_from_resolved_spread_data():
+    cards = [
+        card("A", "SUCCESS", 5, position_weight=10),
+        card("B", "LOSS", -5, position_weight=1),
+        card("C", "LOSS", -5, position_weight=1),
+    ]
+
+    plan = calculate_reading("질문", ReadingContext.GENERAL, cards, [], 0)
+
+    assert plan.verdict == Verdict.POSITIVE
+    assert plan.score == 3.33
 
 
 def test_positive_and_negative_score_boundaries_are_deterministic():
