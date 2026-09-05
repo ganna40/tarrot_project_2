@@ -90,6 +90,19 @@ def test_known_reading_returns_deterministic_flow_and_trace():
     assert body["trace"]["cards"][0]["source_locator"] == "Part III §2 — Swords, Ten"
 
 
+def test_reading_returns_three_contextual_follow_up_questions():
+    with build_client() as client:
+        response = client.post("/api/v1/readings", json=known_request())
+
+    assert response.status_code == 200
+    questions = response.json()["follow_up_questions"]
+    assert len(questions) == 3
+    assert len(set(questions)) == 3
+    assert any("먼저" in question or "지금" in question for question in questions)
+    assert any("변수" in question or "걸림돌" in question for question in questions)
+    assert any("계약" in question or "구체화" in question or "다음 단계" in question for question in questions)
+
+
 def test_openai_text_does_not_change_engine_fields():
     with build_client(FakeOpenAIService()) as client:
         with_llm = client.post("/api/v1/readings", json=known_request(use_llm=True)).json()
