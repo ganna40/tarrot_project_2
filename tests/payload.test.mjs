@@ -22,6 +22,9 @@ test('builds the v1 consultation API payload', () => {
     responseLength: 'SHORT',
     includeTrace: true,
     useLlm: true,
+    llmModel: 'gpt-5.6-sol',
+    llmReasoningEffort: 'XHIGH',
+    interpretationStyle: 'RICH',
   });
 
   assert.deepEqual(payload, {
@@ -33,6 +36,9 @@ test('builds the v1 consultation API payload', () => {
     response_length: 'SHORT',
     include_trace: true,
     use_llm: true,
+    llm_model: 'gpt-5.6-sol',
+    llm_reasoning_effort: 'XHIGH',
+    interpretation_style: 'RICH',
   });
 });
 
@@ -49,6 +55,37 @@ test('AUTO context is omitted so the backend can classify it', () => {
 
   assert.equal('reading_context' in payload, false);
   assert.equal('context' in payload, false);
+  assert.equal('llm_model' in payload, false);
+  assert.equal('llm_reasoning_effort' in payload, false);
+  assert.equal('interpretation_style' in payload, false);
+});
+
+test('blank model uses the Codex CLI default while keeping style controls', () => {
+  const payload = buildConsultationPayload({
+    question: '이번 흐름은?',
+    cards,
+    useLlm: true,
+    llmModel: '   ',
+    llmReasoningEffort: 'HIGH',
+    interpretationStyle: 'BALANCED',
+  });
+
+  assert.equal('llm_model' in payload, false);
+  assert.equal(payload.llm_reasoning_effort, 'HIGH');
+  assert.equal(payload.interpretation_style, 'BALANCED');
+});
+
+test('rejects unsupported LLM controls before the API call', () => {
+  assert.throws(
+    () => buildConsultationPayload({
+      question: '질문',
+      cards,
+      useLlm: true,
+      llmReasoningEffort: 'ULTRA',
+      interpretationStyle: 'RICH',
+    }),
+    (error) => error instanceof ReadingValidationError && error.code === 'INVALID_LLM_REASONING_EFFORT',
+  );
 });
 
 test('rejects duplicate cards before the API call', () => {
